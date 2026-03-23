@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ZipEasy - 설치 없이 브라우저에서 바로 사용하는 무료 웹 압축 도구. 파일 압축 및 해제를 쉽고 빠르게!">
+    <title>ZipEasy - 무료 웹 압축 도구</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo">
+                <span class="logo-icon">⚡</span>
+                <span class="logo-text">Zip<span class="logo-accent">Easy</span></span>
+            </div>
+            <div class="header-right">
+                <button class="lang-toggle" id="langToggle">한/EN</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ===== 화면 1: 홈 ===== -->
+    <main class="screen screen-home active" id="screenHome">
+        <div class="hero-section">
+            <h1 class="hero-title">파일 압축, <span class="text-gradient">더 쉽게.</span></h1>
+            <p class="hero-subtitle">설치 없이 브라우저에서 바로. 100% 무료.</p>
+        </div>
+
+        <div class="cards-container">
+            <!-- 압축하기 카드 -->
+            <div class="action-card" id="compressCard">
+                <div class="card-header">
+                    <div class="card-icon compress-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                    </div>
+                    <h2 class="card-title">압축하기</h2>
+                    <p class="card-desc">여러 파일을 하나의 ZIP으로</p>
+                </div>
+                <div class="drop-zone" id="compressDropZone">
+                    <div class="drop-zone-content">
+                        <div class="drop-icon">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/>
+                                <line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                        </div>
+                        <p class="drop-text">파일을 여기에 끌어놓으세요</p>
+                        <p class="drop-subtext">또는</p>
+                        <label class="file-select-btn" for="compressFileInput">파일 선택</label>
+                        <input type="file" id="compressFileInput" multiple hidden>
+                    </div>
+                </div>
+                <div class="file-list" id="compressFileList"></div>
+                <div class="compress-options" id="compressOptions" style="display:none;">
+                    <div class="option-row">
+                        <label class="option-label">파일 이름</label>
+                        <input type="text" class="option-input" id="zipFileName" value="my_files" placeholder="파일 이름">
+                    </div>
+                    <button class="btn-primary" id="startCompress">
+                        <span>⚡</span> 압축 시작
+                    </button>
+                </div>
+            </div>
+
+            <!-- 압축 풀기 카드 -->
+            <div class="action-card" id="extractCard">
+                <div class="card-header">
+                    <div class="card-icon extract-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                    </div>
+                    <h2 class="card-title">압축 풀기</h2>
+                    <p class="card-desc">ZIP 파일을 원본으로 복원</p>
+                </div>
+                <div class="drop-zone" id="extractDropZone">
+                    <div class="drop-zone-content">
+                        <div class="drop-icon">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="2" y="2" width="20" height="20" rx="2"/>
+                                <path d="M9 2v20"/>
+                                <path d="M14 2v20"/>
+                                <path d="M2 12h20"/>
+                            </svg>
+                        </div>
+                        <p class="drop-text">ZIP 파일을 여기에 끌어놓으세요</p>
+                        <p class="drop-subtext">또는</p>
+                        <label class="file-select-btn" for="extractFileInput">파일 선택</label>
+                        <input type="file" id="extractFileInput" accept=".zip" hidden>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 특징 섹션 -->
+        <div class="features-section">
+            <div class="feature-item">
+                <span class="feature-icon">🔒</span>
+                <span class="feature-text">파일이 서버에 업로드되지 않아요</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">⚡</span>
+                <span class="feature-text">브라우저에서 직접 처리</span>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">💸</span>
+                <span class="feature-text">100% 무료</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- ===== 화면 2: 진행 중 ===== -->
+    <main class="screen screen-progress" id="screenProgress">
+        <div class="progress-container">
+            <div class="progress-card">
+                <h2 class="progress-title" id="progressTitle">압축 중...</h2>
+                
+                <div class="circular-progress" id="circularProgress">
+                    <svg class="progress-ring" width="180" height="180">
+                        <circle class="progress-ring-bg" cx="90" cy="90" r="80" />
+                        <circle class="progress-ring-fill" cx="90" cy="90" r="80" id="progressRing" />
+                    </svg>
+                    <div class="progress-percentage" id="progressPercent">0%</div>
+                </div>
+
+                <div class="progress-file-list" id="progressFileList"></div>
+
+                <div class="progress-info" id="progressInfo">
+                    <span>처리 중...</span>
+                </div>
+
+                <div class="progress-bar-container">
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" id="progressBarFill"></div>
+                    </div>
+                </div>
+
+                <div class="progress-actions">
+                    <button class="btn-ghost" id="cancelBtn">취소</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ===== 화면 3: 완료 ===== -->
+    <main class="screen screen-complete" id="screenComplete">
+        <div class="complete-container">
+            <div class="complete-card">
+                <div class="success-icon" id="successIcon">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </div>
+
+                <h2 class="complete-title" id="completeTitle">압축 완료!</h2>
+                <p class="complete-subtitle" id="completeSubtitle">파일이 성공적으로 압축되었습니다</p>
+
+                <div class="stats-row" id="statsRow">
+                    <div class="stat-card">
+                        <span class="stat-icon">📁</span>
+                        <span class="stat-label">원본 크기</span>
+                        <span class="stat-value" id="statOriginal">-</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">📦</span>
+                        <span class="stat-label">압축 크기</span>
+                        <span class="stat-value" id="statCompressed">-</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">⚡</span>
+                        <span class="stat-label">절약률</span>
+                        <span class="stat-value" id="statSaved">-</span>
+                    </div>
+                </div>
+
+                <div class="file-detail-card" id="fileDetailCard">
+                    <div class="file-detail-row">
+                        <span class="file-detail-label">파일명</span>
+                        <span class="file-detail-value" id="outputFileName">-</span>
+                    </div>
+                    <div class="file-detail-row">
+                        <span class="file-detail-label">포함 파일</span>
+                        <span class="file-detail-value" id="outputFileCount">-</span>
+                    </div>
+                </div>
+
+                <!-- 압축 해제의 경우 파일 목록 -->
+                <div class="extracted-files" id="extractedFiles" style="display:none;">
+                    <h3 class="extracted-title">추출된 파일들</h3>
+                    <div class="extracted-list" id="extractedList"></div>
+                </div>
+
+                <div class="complete-actions">
+                    <button class="btn-primary btn-large" id="downloadBtn">
+                        📥 다운로드
+                    </button>
+                    <button class="btn-ghost" id="newTaskBtn">
+                        🔄 새로운 작업
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 광고 영역 -->
+    <div class="ad-banner" id="adBanner">
+        <div class="ad-content">
+            <span class="ad-label">광고</span>
+            <div class="ad-placeholder">광고 영역 - Google AdSense 코드가 여기에 들어갑니다</div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-inner">
+            <div class="footer-features">
+                <span>🌐 설치 불필요</span>
+                <span class="footer-dot">·</span>
+                <span>💸 100% 무료</span>
+                <span class="footer-dot">·</span>
+                <span>🔒 개인정보 안전</span>
+                <span class="footer-dot">·</span>
+                <span>⚡ 브라우저에서 바로 사용</span>
+            </div>
+            <p class="footer-copyright">© 2026 ZipEasy. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- JSZip CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- FileSaver CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
