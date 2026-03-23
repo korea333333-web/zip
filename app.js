@@ -79,6 +79,7 @@ function getFileIcon(name) {
     const ext = name.split('.').pop().toLowerCase();
     const icons = {
         pdf: '📄', doc: '📝', docx: '📝', txt: '📃',
+        hwp: '📝', hwpx: '📝',
         jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', webp: '🖼️', svg: '🎨',
         mp4: '🎬', avi: '🎬', mov: '🎬', mkv: '🎬',
         mp3: '🎵', wav: '🎵', flac: '🎵',
@@ -90,17 +91,22 @@ function getFileIcon(name) {
     return icons[ext] || '📄';
 }
 
+// UI 업데이트를 위한 yield (브라우저가 화면을 다시 그릴 시간을 줌)
+function yieldToUI() {
+    return new Promise(resolve => setTimeout(resolve, 0));
+}
+
 // === 파일 목록 렌더링 (압축 모드) ===
 function renderCompressFileList() {
     compressFileList.innerHTML = '';
-    
+
     if (state.compressFiles.length === 0) {
         compressOptions.style.display = 'none';
         return;
     }
-    
+
     compressOptions.style.display = 'block';
-    
+
     state.compressFiles.forEach((file, index) => {
         const item = document.createElement('div');
         item.className = 'file-item';
@@ -176,24 +182,24 @@ function setupDropZone(dropZone, fileInput, handler) {
 // === 진행률 업데이트 ===
 function updateProgress(percent, currentFile, fileStatuses) {
     const p = Math.min(Math.round(percent), 100);
-    
+
     // 원형 프로그레스
     const circumference = 2 * Math.PI * 80;
     const offset = circumference - (p / 100) * circumference;
     progressRing.style.strokeDashoffset = offset;
-    
+
     // 퍼센트 텍스트
     progressPercent.textContent = p + '%';
-    
+
     // 프로그레스 바
     progressBarFill.style.width = p + '%';
-    
+
     // 파일 상태 목록
     if (fileStatuses) {
         progressFileList.innerHTML = '';
         fileStatuses.forEach(fs => {
-            const statusIcon = fs.status === 'completed' ? '✓' : 
-                             fs.status === 'in-progress' ? '⟳' : '○';
+            const statusIcon = fs.status === 'completed' ? '✓' :
+                fs.status === 'in-progress' ? '⟳' : '○';
             const item = document.createElement('div');
             item.className = `progress-file-item ${fs.status}`;
             item.innerHTML = `
@@ -203,7 +209,7 @@ function updateProgress(percent, currentFile, fileStatuses) {
             progressFileList.appendChild(item);
         });
     }
-    
+
     // 정보 텍스트
     if (currentFile) {
         progressInfo.innerHTML = `<span>처리 중: ${currentFile}</span>`;
@@ -213,60 +219,63 @@ function updateProgress(percent, currentFile, fileStatuses) {
 // === 압축 실행 ===
 async function compressFiles() {
     if (state.compressFiles.length === 0) return;
-    
+
     state.mode = 'compress';
     state.cancelled = false;
     state.originalSize = state.compressFiles.reduce((sum, f) => sum + f.size, 0);
-    
+
     // 진행 화면으로 전환
     showScreen('screenProgress');
     progressTitle.textContent = '압축 중...';
-    
+
     const zip = new JSZip();
     const totalFiles = state.compressFiles.length;
     const fileStatuses = state.compressFiles.map(f => ({
         name: f.name,
         status: 'waiting'
     }));
-    
+
     updateProgress(0, null, fileStatuses);
-    
+
     // 각 파일을 ZIP에 추가
     for (let i = 0; i < totalFiles; i++) {
         if (state.cancelled) return goHome();
-        
+
         const file = state.compressFiles[i];
         fileStatuses[i].status = 'in-progress';
         updateProgress((i / totalFiles) * 80, file.name, fileStatuses);
-        
+        await yieldToUI(); // UI 업데이트 허용
+
         // 파일 읽기
         const data = await readFileAsync(file);
         zip.file(file.name, data);
-        
+
         fileStatuses[i].status = 'completed';
         updateProgress(((i + 1) / totalFiles) * 80, file.name, fileStatuses);
+        await yieldToUI(); // UI 업데이트 허용
     }
-    
+
     if (state.cancelled) return goHome();
-    
+
     // ZIP 생성
     progressInfo.innerHTML = '<span>ZIP 파일 생성 중...</span>';
     updateProgress(85, null, fileStatuses);
-    
+
     try {
-        const blob = await zip.generateAsync({ 
+        const blob = await zip.generateAsync({
             type: 'blob',
             compression: 'DEFLATE',
-            compressionOptions: { level: 6 }
+            compressionOptions: { level: 3 } // 속도 우선 (level 3 = 빠르면서도 적당한 압축)
         }, (metadata) => {
-            updateProgress(85 + (metadata.percent / 100) * 15, null, fileStatuses);
+            const p = 85 + (metadata.percent / 100) * 15;
+            updateProgress(p, `ZIP 생성 중... ${Math.round(metadata.percent)}%`, fileStatuses);
         });
-        
+
         if (state.cancelled) return goHome();
-        
+
         state.compressedBlob = blob;
         state.compressedSize = blob.size;
-        
+
         // 완료 화면 표시
         showCompressComplete();
     } catch (err) {
@@ -289,23 +298,23 @@ function readFileAsync(file) {
 // === 압축 완료 화면 ===
 function showCompressComplete() {
     showScreen('screenComplete');
-    
+
     const fileName = (zipFileNameInput.value || 'my_files') + '.zip';
     const savedPercent = ((1 - state.compressedSize / state.originalSize) * 100).toFixed(1);
-    
+
     completeTitle.textContent = '압축 완료!';
     completeSubtitle.textContent = '파일이 성공적으로 압축되었습니다';
-    
+
     statsRow.style.display = 'grid';
     statOriginal.textContent = formatSize(state.originalSize);
     statCompressed.textContent = formatSize(state.compressedSize);
     statSaved.textContent = savedPercent + '%';
-    
+
     outputFileName.textContent = fileName;
     outputFileCount.textContent = state.compressFiles.length + '개 파일';
-    
+
     extractedFiles.style.display = 'none';
-    
+
     downloadBtn.textContent = '📥 다운로드';
     downloadBtn.onclick = () => {
         saveAs(state.compressedBlob, fileName);
@@ -317,51 +326,51 @@ async function extractFile(file) {
     state.mode = 'extract';
     state.cancelled = false;
     state.originalSize = file.size;
-    
+
     showScreen('screenProgress');
     progressTitle.textContent = '압축 해제 중...';
     updateProgress(0, file.name, [{ name: file.name, status: 'in-progress' }]);
-    
+
     try {
         const zip = await JSZip.loadAsync(file, {
             // 진행률 콜백
         });
-        
+
         updateProgress(30, '파일 분석 중...', [{ name: file.name, status: 'completed' }]);
-        
+
         const entries = Object.keys(zip.files);
         const totalEntries = entries.filter(name => !zip.files[name].dir).length;
         const fileStatuses = entries
             .filter(name => !zip.files[name].dir)
             .map(name => ({ name, status: 'waiting' }));
-        
+
         state.extractedData = [];
         let processed = 0;
-        
+
         for (const fileName of entries) {
             if (state.cancelled) return goHome();
-            
+
             const zipEntry = zip.files[fileName];
             if (zipEntry.dir) continue;
-            
+
             const statusIdx = fileStatuses.findIndex(f => f.name === fileName);
             if (statusIdx >= 0) fileStatuses[statusIdx].status = 'in-progress';
             updateProgress(30 + (processed / totalEntries) * 65, fileName, fileStatuses);
-            
+
             const blob = await zipEntry.async('blob');
             state.extractedData.push({
                 name: fileName,
                 blob: blob,
                 size: blob.size
             });
-            
+
             if (statusIdx >= 0) fileStatuses[statusIdx].status = 'completed';
             processed++;
             updateProgress(30 + (processed / totalEntries) * 65, fileName, fileStatuses);
         }
-        
+
         updateProgress(100, '완료!', fileStatuses);
-        
+
         // 완료 화면 표시
         showExtractComplete(file.name);
     } catch (err) {
@@ -374,20 +383,20 @@ async function extractFile(file) {
 // === 압축 해제 완료 화면 ===
 function showExtractComplete(originalName) {
     showScreen('screenComplete');
-    
+
     completeTitle.textContent = '압축 해제 완료!';
     completeSubtitle.textContent = '모든 파일이 성공적으로 추출되었습니다';
-    
+
     // 통계 숨기기 (해제 모드에서는 절약률이 의미 없으므로)
     statsRow.style.display = 'none';
-    
+
     outputFileName.textContent = originalName;
     outputFileCount.textContent = state.extractedData.length + '개 파일 추출됨';
-    
+
     // 추출된 파일 목록 표시
     extractedFiles.style.display = 'block';
     extractedList.innerHTML = '';
-    
+
     state.extractedData.forEach((file, index) => {
         const item = document.createElement('div');
         item.className = 'extracted-item';
@@ -401,7 +410,7 @@ function showExtractComplete(originalName) {
         `;
         extractedList.appendChild(item);
     });
-    
+
     // 개별 파일 다운로드
     extractedList.querySelectorAll('.extracted-download-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -410,7 +419,7 @@ function showExtractComplete(originalName) {
             saveAs(file.blob, file.name);
         });
     });
-    
+
     // 전체 다운로드 버튼 (개별 다운로드)
     downloadBtn.textContent = '📥 모두 다운로드';
     downloadBtn.onclick = () => {
@@ -428,7 +437,7 @@ function goHome() {
     state.originalSize = 0;
     state.compressedSize = 0;
     state.cancelled = false;
-    
+
     compressFileList.innerHTML = '';
     compressOptions.style.display = 'none';
     progressFileList.innerHTML = '';
@@ -436,7 +445,7 @@ function goHome() {
     progressRing.style.strokeDashoffset = 502.4;
     progressPercent.textContent = '0%';
     zipFileNameInput.value = 'my_files';
-    
+
     showScreen('screenHome');
 }
 
@@ -446,7 +455,7 @@ function init() {
     setupDropZone(compressDropZone, compressFileInput, (files) => {
         addCompressFiles(files);
     });
-    
+
     // 해제 드롭존
     setupDropZone(extractDropZone, extractFileInput, (files) => {
         if (files.length > 0) {
@@ -458,21 +467,21 @@ function init() {
             }
         }
     });
-    
+
     // 압축 시작 버튼
     startCompressBtn.addEventListener('click', compressFiles);
-    
+
     // 취소 버튼
     cancelBtn.addEventListener('click', () => {
         state.cancelled = true;
     });
-    
+
     // 새 작업 버튼
     newTaskBtn.addEventListener('click', goHome);
-    
+
     // 로고 클릭 → 홈
     logo.addEventListener('click', goHome);
-    
+
     // 초기 프로그레스 링 설정
     const circumference = 2 * Math.PI * 80;
     progressRing.style.strokeDasharray = circumference;
