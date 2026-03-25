@@ -486,6 +486,13 @@ body {
     margin-top: 0.75rem;
 }
 
+.extract-preview-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 0.5rem;
+}
+
 .extract-preview-header {
     display: flex;
     justify-content: space-between;
