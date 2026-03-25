@@ -537,36 +537,33 @@ body {
     color: var(--text);
 }
 
-/* Circular Progress */
-.circular-progress {
-    position: relative;
-    width: 160px;
-    height: 160px;
-    margin: 0 auto 1.5rem;
+/* Overall Progress */
+.overall-progress {
+    margin-bottom: 1.25rem;
 }
 
-.progress-ring {
-    transform: rotate(-90deg);
+.overall-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
 }
 
-.progress-ring-bg {
-    fill: none;
-    stroke: var(--border);
-    stroke-width: 6;
+.overall-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    margin-right: 0.5rem;
 }
 
-.progress-ring-fill {
-    fill: none;
-    stroke: var(--accent);
-    stroke-width: 6;
-    stroke-linecap: round;
-    stroke-dasharray: 502.4;
-    stroke-dashoffset: 502.4;
-    transition: stroke-dashoffset 0.4s ease;
-    filter: drop-shadow(0 0 3px rgba(0, 102, 255, 0.3));
-}
-
-.progress-percentage {
+.overall-percent {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--accent);
+    flex-shrink: 0;
     animation: pulse-text 2s ease-in-out infinite;
 }
 
@@ -575,43 +572,42 @@ body {
     50% { opacity: 0.7; }
 }
 
-.progress-percentage {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 2rem;
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    color: var(--text);
-    animation: pulse-text 2s ease-in-out infinite;
+.overall-bar {
+    height: 8px !important;
+    border-radius: 4px !important;
+}
+
+.overall-bar .progress-bar-fill {
+    border-radius: 4px;
 }
 
 /* Progress File List */
 .progress-file-list {
     text-align: left;
     margin-bottom: 1.25rem;
+    max-height: 280px;
+    overflow-y: auto;
 }
 
 .progress-file-item {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.35rem 0.6rem;
+    padding: 0.5rem 0.6rem;
     border-radius: 6px;
-    margin-bottom: 0.2rem;
+    margin-bottom: 0.3rem;
     font-size: 0.8rem;
     transition: var(--transition);
+    border: 1px solid transparent;
 }
 
 .progress-file-item.completed {
     color: var(--success);
+    border-color: var(--border);
 }
 
 .progress-file-item.in-progress {
     color: var(--accent);
     background: var(--accent-light);
     font-weight: 600;
+    border-color: var(--accent);
     animation: pulse 1.5s ease-in-out infinite;
 }
 
@@ -624,23 +620,92 @@ body {
     color: var(--text-tertiary);
 }
 
-.progress-file-status {
-    flex-shrink: 0;
-    font-size: 0.85rem;
+.pf-top {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-/* Progress Info */
-.progress-info {
-    color: var(--text-secondary);
+.pf-status {
+    flex-shrink: 0;
+    font-size: 0.85rem;
+    width: 1rem;
+    text-align: center;
+}
+
+.pf-name {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pf-size {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+}
+
+.pf-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 0.35rem;
+    overflow: hidden;
+}
+
+.pf-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.2s ease;
+}
+
+.progress-file-item.completed .pf-bar-fill {
+    background: var(--success);
+    width: 100%;
+}
+
+.progress-file-item.in-progress .pf-bar-fill {
+    background: linear-gradient(90deg, var(--accent), #4d94ff, var(--accent));
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+}
+
+/* ZIP Generation Section */
+.zip-gen-section {
+    margin-bottom: 1.25rem;
+    padding: 0.75rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+.zip-gen-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.35rem;
+}
+
+.zip-gen-label {
     font-size: 0.8rem;
-    margin-bottom: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.zip-gen-percent {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--accent);
+}
+
+.zip-gen-bar {
+    height: 5px !important;
 }
 
 /* Progress Bar */
-.progress-bar-container {
-    margin-bottom: 1.25rem;
-}
-
 .progress-bar {
     height: 4px;
     background: var(--border);

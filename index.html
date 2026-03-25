@@ -144,23 +144,28 @@
             <div class="progress-card">
                 <h2 class="progress-title" id="progressTitle">압축 중...</h2>
 
-                <div class="circular-progress" id="circularProgress">
-                    <svg class="progress-ring" width="180" height="180">
-                        <circle class="progress-ring-bg" cx="90" cy="90" r="80" />
-                        <circle class="progress-ring-fill" cx="90" cy="90" r="80" id="progressRing" />
-                    </svg>
-                    <div class="progress-percentage" id="progressPercent">0%</div>
+                <!-- 전체 진행률 -->
+                <div class="overall-progress">
+                    <div class="overall-progress-header">
+                        <span class="overall-label" id="overallLabel" data-i18n="processing">처리 중...</span>
+                        <span class="overall-percent" id="overallPercent">0%</span>
+                    </div>
+                    <div class="progress-bar overall-bar">
+                        <div class="progress-bar-fill" id="progressBarFill"></div>
+                    </div>
                 </div>
 
+                <!-- 파일별 진행 목록 -->
                 <div class="progress-file-list" id="progressFileList"></div>
 
-                <div class="progress-info" id="progressInfo">
-                    <span data-i18n="processing">처리 중...</span>
-                </div>
-
-                <div class="progress-bar-container">
-                    <div class="progress-bar">
-                        <div class="progress-bar-fill" id="progressBarFill"></div>
+                <!-- ZIP 생성 단계 -->
+                <div class="zip-gen-section" id="zipGenSection" style="display:none;">
+                    <div class="zip-gen-header">
+                        <span class="zip-gen-label" id="zipGenLabel">ZIP 생성 중...</span>
+                        <span class="zip-gen-percent" id="zipGenPercent">0%</span>
+                    </div>
+                    <div class="progress-bar zip-gen-bar">
+                        <div class="progress-bar-fill" id="zipGenBarFill"></div>
                     </div>
                 </div>
 

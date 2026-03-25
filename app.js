@@ -38,11 +38,14 @@ const extractFileInput = $('#extractFileInput');
 
 // Progress
 const progressTitle = $('#progressTitle');
-const progressPercent = $('#progressPercent');
-const progressRing = $('#progressRing');
+const overallLabel = $('#overallLabel');
+const overallPercent = $('#overallPercent');
 const progressFileList = $('#progressFileList');
-const progressInfo = $('#progressInfo');
 const progressBarFill = $('#progressBarFill');
+const zipGenSection = $('#zipGenSection');
+const zipGenLabel = $('#zipGenLabel');
+const zipGenPercent = $('#zipGenPercent');
+const zipGenBarFill = $('#zipGenBarFill');
 const cancelBtn = $('#cancelBtn');
 
 // Complete
@@ -185,41 +188,41 @@ function setupDropZone(dropZone, fileInput, handler) {
     });
 }
 
-// === 진행률 업데이트 ===
-function updateProgress(percent, currentFile, fileStatuses) {
+// === 파일 목록 렌더링 (진행 화면) ===
+function renderProgressFileList(fileStatuses) {
+    progressFileList.innerHTML = '';
+    fileStatuses.forEach(fs => {
+        const item = document.createElement('div');
+        item.className = `progress-file-item ${fs.status}`;
+
+        const percent = fs.status === 'completed' ? 100 :
+            fs.status === 'in-progress' ? Math.round((fs.readProgress || 0) * 100) : 0;
+
+        item.innerHTML = `
+            <div class="pf-top">
+                <span class="pf-status">${fs.status === 'completed' ? '✓' : fs.status === 'in-progress' ? '⟳' : '○'}</span>
+                <span class="pf-name">${fs.name}</span>
+                <span class="pf-size">${formatSize(fs.size)}</span>
+            </div>
+            ${fs.status !== 'waiting' ? `<div class="pf-bar"><div class="pf-bar-fill" style="width:${percent}%"></div></div>` : ''}
+        `;
+        progressFileList.appendChild(item);
+    });
+}
+
+// === 전체 진행률 업데이트 ===
+function updateOverallProgress(percent, label) {
     const p = Math.min(Math.round(percent), 100);
-
-    // 원형 프로그레스
-    const circumference = 2 * Math.PI * 80;
-    const offset = circumference - (p / 100) * circumference;
-    progressRing.style.strokeDashoffset = offset;
-
-    // 퍼센트 텍스트
-    progressPercent.textContent = p + '%';
-
-    // 프로그레스 바
     progressBarFill.style.width = p + '%';
+    overallPercent.textContent = p + '%';
+    if (label) overallLabel.textContent = label;
+}
 
-    // 파일 상태 목록
-    if (fileStatuses) {
-        progressFileList.innerHTML = '';
-        fileStatuses.forEach(fs => {
-            const statusIcon = fs.status === 'completed' ? '✓' :
-                fs.status === 'in-progress' ? '⟳' : '○';
-            const item = document.createElement('div');
-            item.className = `progress-file-item ${fs.status}`;
-            item.innerHTML = `
-                <span class="progress-file-status">${statusIcon}</span>
-                <span>${fs.name}</span>
-            `;
-            progressFileList.appendChild(item);
-        });
-    }
-
-    // 정보 텍스트
-    if (currentFile) {
-        progressInfo.innerHTML = `<span>${t('processingFile')} ${currentFile}</span>`;
-    }
+// === ZIP 생성 진행률 업데이트 ===
+function updateZipGenProgress(percent) {
+    const p = Math.min(Math.round(percent), 100);
+    zipGenBarFill.style.width = p + '%';
+    zipGenPercent.textContent = p + '%';
 }
 
 // === 저장 위치 선택 (경로만 기억, 파일은 압축 완료 후 생성) ===
@@ -259,60 +262,66 @@ async function compressFiles() {
     // 진행 화면으로 전환
     showScreen('screenProgress');
     progressTitle.textContent = t('compressing');
+    zipGenSection.style.display = 'none';
 
     const zip = new JSZip();
     const totalFiles = state.compressFiles.length;
     const fileStatuses = state.compressFiles.map(f => ({
         name: f.name,
-        status: 'waiting'
+        size: f.size,
+        status: 'waiting',
+        readProgress: 0
     }));
 
-    updateProgress(0, null, fileStatuses);
+    renderProgressFileList(fileStatuses);
+    updateOverallProgress(0, `0 / ${totalFiles} ${t('filesUnit')}`);
 
     try {
-        // 각 파일을 ZIP에 추가
         for (let i = 0; i < totalFiles; i++) {
             if (state.cancelled) return goHome();
 
             const file = state.compressFiles[i];
             fileStatuses[i].status = 'in-progress';
-            updateProgress((i / totalFiles) * 80, file.name, fileStatuses);
+            fileStatuses[i].readProgress = 0;
+            renderProgressFileList(fileStatuses);
             await yieldToUI();
 
             try {
-                const basePercent = (i / totalFiles) * 80;
-                const filePercent = (1 / totalFiles) * 80;
                 const data = await readFileAsync(file, (readProgress) => {
-                    const p = basePercent + readProgress * filePercent;
-                    const sizeInfo = `${file.name} (${formatSize(file.size)})`;
-                    updateProgress(p, sizeInfo, fileStatuses);
+                    fileStatuses[i].readProgress = readProgress;
+                    renderProgressFileList(fileStatuses);
+                    const overallP = ((i + readProgress) / totalFiles) * 80;
+                    updateOverallProgress(overallP, `${t('processingFile')} ${file.name} (${formatSize(file.size)})`);
                 });
                 zip.file(file.name, data);
             } catch (readErr) {
                 console.error(`파일 읽기 오류 (${file.name}):`, readErr);
-                fileStatuses[i].status = 'completed';
-                updateProgress(((i + 1) / totalFiles) * 80, file.name, fileStatuses);
-                continue;
             }
 
             fileStatuses[i].status = 'completed';
-            updateProgress(((i + 1) / totalFiles) * 80, file.name, fileStatuses);
+            fileStatuses[i].readProgress = 1;
+            const overallP = ((i + 1) / totalFiles) * 80;
+            updateOverallProgress(overallP, `${i + 1} / ${totalFiles} ${t('filesUnit')}`);
+            renderProgressFileList(fileStatuses);
             await yieldToUI();
         }
 
         if (state.cancelled) return goHome();
 
-        // ZIP 생성
-        progressInfo.innerHTML = `<span>${t('generatingZip')}</span>`;
-        updateProgress(85, null, fileStatuses);
+        // ZIP 생성 단계
+        updateOverallProgress(80, t('generatingZip'));
+        zipGenSection.style.display = 'block';
+        zipGenLabel.textContent = t('generating');
+        updateZipGenProgress(0);
 
         const blob = await zip.generateAsync({
             type: 'blob',
             compression: 'DEFLATE',
             compressionOptions: { level: 6 }
         }, (metadata) => {
-            const p = 85 + (metadata.percent / 100) * 15;
-            updateProgress(p, `${t('generating')} ${Math.round(metadata.percent)}%`, fileStatuses);
+            updateZipGenProgress(metadata.percent);
+            const overallP = 80 + (metadata.percent / 100) * 20;
+            updateOverallProgress(overallP, `${t('generating')} ${Math.round(metadata.percent)}%`);
         });
 
         if (state.cancelled) return goHome();
@@ -418,20 +427,22 @@ async function extractFile(file) {
 
     showScreen('screenProgress');
     progressTitle.textContent = t('extracting');
-    updateProgress(0, file.name, [{ name: file.name, status: 'in-progress' }]);
+    zipGenSection.style.display = 'none';
+    updateOverallProgress(0, t('processing'));
+    renderProgressFileList([{ name: file.name, size: file.size, status: 'in-progress', readProgress: 0 }]);
 
     try {
-        const zip = await JSZip.loadAsync(file, {
-            // 진행률 콜백
-        });
+        const zip = await JSZip.loadAsync(file);
 
-        updateProgress(30, t('processing'), [{ name: file.name, status: 'completed' }]);
+        updateOverallProgress(30, t('processing'));
 
         const entries = Object.keys(zip.files);
         const totalEntries = entries.filter(name => !zip.files[name].dir).length;
         const fileStatuses = entries
             .filter(name => !zip.files[name].dir)
-            .map(name => ({ name, status: 'waiting' }));
+            .map(name => ({ name, size: 0, status: 'waiting', readProgress: 0 }));
+
+        renderProgressFileList(fileStatuses);
 
         state.extractedData = [];
         let processed = 0;
@@ -443,8 +454,12 @@ async function extractFile(file) {
             if (zipEntry.dir) continue;
 
             const statusIdx = fileStatuses.findIndex(f => f.name === fileName);
-            if (statusIdx >= 0) fileStatuses[statusIdx].status = 'in-progress';
-            updateProgress(30 + (processed / totalEntries) * 65, fileName, fileStatuses);
+            if (statusIdx >= 0) {
+                fileStatuses[statusIdx].status = 'in-progress';
+                renderProgressFileList(fileStatuses);
+            }
+            const overallP = 30 + (processed / totalEntries) * 70;
+            updateOverallProgress(overallP, `${t('processingFile')} ${fileName}`);
 
             const blob = await zipEntry.async('blob');
             state.extractedData.push({
@@ -453,12 +468,18 @@ async function extractFile(file) {
                 size: blob.size
             });
 
-            if (statusIdx >= 0) fileStatuses[statusIdx].status = 'completed';
+            if (statusIdx >= 0) {
+                fileStatuses[statusIdx].status = 'completed';
+                fileStatuses[statusIdx].size = blob.size;
+                fileStatuses[statusIdx].readProgress = 1;
+            }
             processed++;
-            updateProgress(30 + (processed / totalEntries) * 65, fileName, fileStatuses);
+            updateOverallProgress(30 + (processed / totalEntries) * 70, `${processed} / ${totalEntries} ${t('filesUnit')}`);
+            renderProgressFileList(fileStatuses);
+            await yieldToUI();
         }
 
-        updateProgress(100, t('done'), fileStatuses);
+        updateOverallProgress(100, t('done'));
 
         // 완료 화면 표시
         showExtractComplete(file.name);
@@ -558,8 +579,8 @@ function goHome() {
     saveLocationHint.style.color = '';
     progressFileList.innerHTML = '';
     progressBarFill.style.width = '0%';
-    progressRing.style.strokeDashoffset = 502.4;
-    progressPercent.textContent = '0%';
+    overallPercent.textContent = '0%';
+    zipGenSection.style.display = 'none';
     zipFileNameInput.value = 'my_files';
 
     showScreen('screenHome');
@@ -600,11 +621,6 @@ function init() {
 
     // 로고 클릭 → 홈
     logo.addEventListener('click', goHome);
-
-    // 초기 프로그레스 링 설정
-    const circumference = 2 * Math.PI * 80;
-    progressRing.style.strokeDasharray = circumference;
-    progressRing.style.strokeDashoffset = circumference;
 
     // 다국어 초기화
     initI18n();
