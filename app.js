@@ -350,14 +350,13 @@ function readFileAsync(file) {
 }
 
 // === 압축 완료 화면 ===
-function showCompressComplete() {
+async function showCompressComplete() {
     showScreen('screenComplete');
 
     const fileName = (zipFileNameInput.value || 'my_files') + '.zip';
     const savedPercent = ((1 - state.compressedSize / state.originalSize) * 100).toFixed(1);
 
     completeTitle.textContent = '압축 완료!';
-    completeSubtitle.textContent = '파일이 성공적으로 압축되었습니다';
 
     statsRow.style.display = 'grid';
     statOriginal.textContent = formatSize(state.originalSize);
@@ -369,10 +368,48 @@ function showCompressComplete() {
 
     extractedFiles.style.display = 'none';
 
-    downloadBtn.textContent = '📥 다운로드';
-    downloadBtn.onclick = () => {
-        saveFile(state.compressedBlob, fileName);
-    };
+    // 저장 위치를 미리 선택했으면 자동 저장
+    if (state.saveFileHandle) {
+        try {
+            const writable = await state.saveFileHandle.createWritable();
+            await writable.write(state.compressedBlob);
+            await writable.close();
+            completeSubtitle.textContent = '파일이 선택한 위치에 저장되었습니다';
+            downloadBtn.style.display = 'none';
+        } catch (err) {
+            console.error('자동 저장 실패:', err);
+            completeSubtitle.textContent = '자동 저장에 실패했습니다. 아래 버튼으로 저장해주세요.';
+            downloadBtn.style.display = '';
+            downloadBtn.textContent = '📥 다른 위치에 저장';
+            downloadBtn.onclick = () => saveAs(state.compressedBlob, fileName);
+        }
+    } else {
+        completeSubtitle.textContent = '파일이 성공적으로 압축되었습니다';
+        downloadBtn.style.display = '';
+        downloadBtn.textContent = '📥 저장 위치 선택';
+        downloadBtn.onclick = async () => {
+            if (window.showSaveFilePicker) {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: fileName,
+                        types: [{ description: 'ZIP 파일', accept: { 'application/zip': ['.zip'] } }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(state.compressedBlob);
+                    await writable.close();
+                    completeSubtitle.textContent = '파일이 선택한 위치에 저장되었습니다';
+                    downloadBtn.style.display = 'none';
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.error('저장 오류:', err);
+                        saveAs(state.compressedBlob, fileName);
+                    }
+                }
+            } else {
+                saveAs(state.compressedBlob, fileName);
+            }
+        };
+    }
 }
 
 // === 압축 해제 실행 ===
@@ -434,14 +471,44 @@ async function extractFile(file) {
     }
 }
 
+// === 폴더에 파일들 저장 (File System Access API) ===
+async function saveFilesToFolder(files) {
+    if (!window.showDirectoryPicker) {
+        alert('이 브라우저는 폴더 선택을 지원하지 않습니다.\nChrome 또는 Edge 브라우저를 사용해주세요.');
+        return false;
+    }
+
+    try {
+        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        for (const file of files) {
+            // 하위 폴더 경로 처리
+            const parts = file.name.split('/');
+            let currentDir = dirHandle;
+            for (let i = 0; i < parts.length - 1; i++) {
+                currentDir = await currentDir.getDirectoryHandle(parts[i], { create: true });
+            }
+            const fileHandle = await currentDir.getFileHandle(parts[parts.length - 1], { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(file.blob);
+            await writable.close();
+        }
+        return true;
+    } catch (err) {
+        if (err.name !== 'AbortError') {
+            console.error('폴더 저장 오류:', err);
+            alert('파일 저장 중 오류가 발생했습니다: ' + err.message);
+        }
+        return false;
+    }
+}
+
 // === 압축 해제 완료 화면 ===
 function showExtractComplete(originalName) {
     showScreen('screenComplete');
 
     completeTitle.textContent = '압축 해제 완료!';
-    completeSubtitle.textContent = '모든 파일이 성공적으로 추출되었습니다';
+    completeSubtitle.textContent = '저장할 폴더를 선택해주세요';
 
-    // 통계 숨기기 (해제 모드에서는 절약률이 의미 없으므로)
     statsRow.style.display = 'none';
 
     outputFileName.textContent = originalName;
@@ -460,26 +527,19 @@ function showExtractComplete(originalName) {
                 <span>${file.name}</span>
             </div>
             <span class="extracted-item-size">${formatSize(file.size)}</span>
-            <button class="extracted-download-btn" data-index="${index}">저장</button>
         `;
         extractedList.appendChild(item);
     });
 
-    // 개별 파일 다운로드
-    extractedList.querySelectorAll('.extracted-download-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const idx = parseInt(e.target.dataset.index);
-            const file = state.extractedData[idx];
-            saveAs(file.blob, file.name);
-        });
-    });
-
-    // 전체 다운로드 버튼 (개별 다운로드)
-    downloadBtn.textContent = '📥 모두 다운로드';
-    downloadBtn.onclick = () => {
-        state.extractedData.forEach(file => {
-            saveAs(file.blob, file.name);
-        });
+    // 폴더 선택해서 저장 버튼
+    downloadBtn.style.display = '';
+    downloadBtn.textContent = '📁 저장할 폴더 선택';
+    downloadBtn.onclick = async () => {
+        const saved = await saveFilesToFolder(state.extractedData);
+        if (saved) {
+            completeSubtitle.textContent = '모든 파일이 선택한 폴더에 저장되었습니다';
+            downloadBtn.style.display = 'none';
+        }
     };
 }
 
