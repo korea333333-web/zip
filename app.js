@@ -640,7 +640,6 @@ function showExtractComplete(originalName) {
 
                 const handle = await window.showSaveFilePicker({
                     suggestedName: zipName + '.zip',
-                    startIn: 'desktop',
                     types: [{ description: 'ZIP', accept: { 'application/zip': ['.zip'] } }]
                 });
                 const writable = await handle.createWritable();
@@ -658,6 +657,12 @@ function showExtractComplete(originalName) {
     } else {
         downloadBtn.style.display = 'none';
     }
+
+    // 안내 문구
+    const notice = document.createElement('p');
+    notice.className = 'extract-notice extra-save-btn';
+    notice.textContent = t('desktopNotice');
+    actions.insertBefore(notice, newTaskBtn);
 
     // 버튼 2: 다운로드 폴더에 개별 저장
     const dlBtn = document.createElement('button');

@@ -516,6 +516,14 @@ body {
     margin-bottom: 0.75rem;
 }
 
+.extract-notice {
+    font-size: 0.7rem;
+    color: var(--error, #dc3545);
+    text-align: center;
+    margin: 0.5rem 0;
+    line-height: 1.4;
+}
+
 .extract-save-info {
     font-size: 0.8rem;
     color: var(--text-secondary);
