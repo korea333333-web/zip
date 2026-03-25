@@ -354,15 +354,46 @@ function readFileAsync(file, onProgress) {
     });
 }
 
-// === 압축 완료 화면 ===
-function showCompressComplete() {
+// === 압축 완료 → 바로 저장 후 결과 표시 ===
+async function showCompressComplete() {
+    const fileName = (zipFileNameInput.value || 'my_files') + '.zip';
+
+    // 미리 저장 위치를 선택했으면 바로 저장
+    if (state.saveDirHandle) {
+        try {
+            const writable = await state.saveDirHandle.createWritable();
+            await writable.write(state.compressedBlob);
+            await writable.close();
+        } catch (err) {
+            console.error('자동 저장 실패:', err);
+            saveAs(state.compressedBlob, fileName);
+        }
+    } else if (window.showSaveFilePicker) {
+        // 저장 위치 미선택 → 바로 저장 대화상자 표시
+        try {
+            const handle = await window.showSaveFilePicker({
+                suggestedName: fileName,
+                types: [{ description: 'ZIP', accept: { 'application/zip': ['.zip'] } }]
+            });
+            const writable = await handle.createWritable();
+            await writable.write(state.compressedBlob);
+            await writable.close();
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                saveAs(state.compressedBlob, fileName);
+            }
+        }
+    } else {
+        saveAs(state.compressedBlob, fileName);
+    }
+
+    // 결과 화면 표시
     showScreen('screenComplete');
 
-    const fileName = (zipFileNameInput.value || 'my_files') + '.zip';
     const savedPercent = ((1 - state.compressedSize / state.originalSize) * 100).toFixed(1);
 
     completeTitle.textContent = t('compressComplete');
-    completeSubtitle.textContent = t('compressSuccess');
+    completeSubtitle.textContent = t('compressSavedAuto');
 
     statsRow.style.display = 'grid';
     statOriginal.textContent = formatSize(state.originalSize);
@@ -373,50 +404,7 @@ function showCompressComplete() {
     outputFileCount.textContent = state.compressFiles.length + t('filesUnit');
 
     extractedFiles.style.display = 'none';
-
-    // 미리 저장 위치를 선택했으면 자동 저장
-    if (state.saveDirHandle) {
-        (async () => {
-            try {
-                const writable = await state.saveDirHandle.createWritable();
-                await writable.write(state.compressedBlob);
-                await writable.close();
-                completeSubtitle.textContent = t('compressSavedAuto');
-                downloadBtn.style.display = 'none';
-            } catch (err) {
-                console.error('자동 저장 실패:', err);
-                completeSubtitle.textContent = t('compressSuccess');
-                downloadBtn.style.display = '';
-                downloadBtn.textContent = '📥 ' + t('saveLocationSelect');
-                downloadBtn.onclick = () => saveAs(state.compressedBlob, fileName);
-            }
-        })();
-    } else {
-        // 폴더 미선택 → 저장 위치 선택 버튼
-        downloadBtn.style.display = '';
-        downloadBtn.textContent = '📥 ' + t('saveLocationSelect');
-        downloadBtn.onclick = async () => {
-            if (window.showSaveFilePicker) {
-                try {
-                    const handle = await window.showSaveFilePicker({
-                        suggestedName: fileName,
-                        types: [{ description: 'ZIP', accept: { 'application/zip': ['.zip'] } }]
-                    });
-                    const writable = await handle.createWritable();
-                    await writable.write(state.compressedBlob);
-                    await writable.close();
-                    completeSubtitle.textContent = t('compressSavedAuto');
-                    downloadBtn.style.display = 'none';
-                } catch (err) {
-                    if (err.name !== 'AbortError') {
-                        saveAs(state.compressedBlob, fileName);
-                    }
-                }
-            } else {
-                saveAs(state.compressedBlob, fileName);
-            }
-        };
-    }
+    downloadBtn.style.display = 'none';
 }
 
 // === 압축 해제 실행 ===
