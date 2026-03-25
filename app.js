@@ -527,7 +527,7 @@ async function previewZipFile(file) {
     }
 }
 
-// === 압축 해제 저장 폴더 선택 ===
+// === 압축 해제 저장 폴더 선택 (ZIP 이름으로 하위 폴더 자동 생성) ===
 async function chooseExtractLocation() {
     if (!window.showDirectoryPicker) {
         alert(t('folderNotSupported'));
@@ -535,8 +535,13 @@ async function chooseExtractLocation() {
     }
     try {
         const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-        state.extractDirHandle = dirHandle;
-        extractLocationText.textContent = dirHandle.name;
+
+        // ZIP 파일명에서 .zip 제거하여 폴더명 생성
+        const zipName = state.extractZipFile.name.replace(/\.zip$/i, '');
+        const subFolder = await dirHandle.getDirectoryHandle(zipName, { create: true });
+
+        state.extractDirHandle = subFolder;
+        extractLocationText.textContent = dirHandle.name + ' / ' + zipName;
         extractLocationHint.textContent = t('saveLocationSelected');
         extractLocationHint.style.color = 'var(--accent)';
     } catch (err) {
@@ -682,7 +687,9 @@ function showExtractComplete(originalName, alreadySaved) {
             }
             try {
                 const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-                await saveExtractedToFolder(dirHandle);
+                const zipName = originalName.replace(/\.zip$/i, '');
+                const subFolder = await dirHandle.getDirectoryHandle(zipName, { create: true });
+                await saveExtractedToFolder(subFolder);
                 completeSubtitle.textContent = t('extractSaved');
                 downloadBtn.style.display = 'none';
             } catch (err) {
