@@ -126,6 +126,18 @@
                         <button class="file-item-remove" id="extractClear" title="제거">✕</button>
                     </div>
                     <div class="extract-file-list" id="extractFileList"></div>
+                    <div class="option-row">
+                        <label class="option-label" data-i18n="saveLocation">저장 위치</label>
+                        <div class="save-location-row">
+                            <button class="btn-location" id="chooseExtractLocation">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                                </svg>
+                                <span id="extractLocationText" data-i18n="saveLocationBtn">위치 선택하기</span>
+                            </button>
+                            <span class="save-location-hint" id="extractLocationHint" data-i18n="saveLocationDefault">기본: 다운로드 폴더</span>
+                        </div>
+                    </div>
                     <button class="btn-primary" id="startExtract">
                         <span>⚡</span> <span data-i18n="startExtract">압축 해제 시작</span>
                     </button>
