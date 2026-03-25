@@ -563,6 +563,16 @@ body {
     stroke-dasharray: 502.4;
     stroke-dashoffset: 502.4;
     transition: stroke-dashoffset 0.4s ease;
+    filter: drop-shadow(0 0 3px rgba(0, 102, 255, 0.3));
+}
+
+.progress-percentage {
+    animation: pulse-text 2s ease-in-out infinite;
+}
+
+@keyframes pulse-text {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
 }
 
 .progress-percentage {
@@ -574,6 +584,7 @@ body {
     font-weight: 800;
     letter-spacing: -0.03em;
     color: var(--text);
+    animation: pulse-text 2s ease-in-out infinite;
 }
 
 /* Progress File List */
@@ -601,6 +612,12 @@ body {
     color: var(--accent);
     background: var(--accent-light);
     font-weight: 600;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
 }
 
 .progress-file-item.waiting {
@@ -633,10 +650,17 @@ body {
 
 .progress-bar-fill {
     height: 100%;
-    background: var(--accent);
+    background: linear-gradient(90deg, var(--accent), #4d94ff, var(--accent));
+    background-size: 200% 100%;
     border-radius: 2px;
     width: 0%;
     transition: width 0.3s ease;
+    animation: shimmer 2s linear infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
 .progress-actions {
