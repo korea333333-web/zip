@@ -222,22 +222,28 @@ function updateProgress(percent, currentFile, fileStatuses) {
     }
 }
 
-// === 저장 폴더 선택 (폴더만 선택, 파일은 아직 생성 안 됨) ===
+// === 저장 위치 선택 (경로만 기억, 파일은 압축 완료 후 생성) ===
 async function chooseSaveLocation() {
-    if (!window.showDirectoryPicker) {
-        alert(t('folderNotSupported'));
+    if (!window.showSaveFilePicker) {
+        alert(t('browserNotSupported'));
         return;
     }
 
+    const fileName = (zipFileNameInput.value || 'my_files') + '.zip';
+
     try {
-        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-        state.saveDirHandle = dirHandle;
-        saveLocationText.textContent = dirHandle.name;
+        const handle = await window.showSaveFilePicker({
+            suggestedName: fileName,
+            types: [{ description: 'ZIP', accept: { 'application/zip': ['.zip'] } }]
+        });
+        // 핸들만 저장, 파일에 쓰지 않음 (압축 완료 후에 씀)
+        state.saveDirHandle = handle;
+        saveLocationText.textContent = handle.name;
         saveLocationHint.textContent = t('saveLocationSelected');
         saveLocationHint.style.color = 'var(--accent)';
     } catch (err) {
         if (err.name !== 'AbortError') {
-            console.error('폴더 선택 오류:', err);
+            console.error('저장 위치 선택 오류:', err);
         }
     }
 }
@@ -359,12 +365,11 @@ function showCompressComplete() {
 
     extractedFiles.style.display = 'none';
 
-    // 미리 폴더를 선택했으면 자동 저장
+    // 미리 저장 위치를 선택했으면 자동 저장
     if (state.saveDirHandle) {
         (async () => {
             try {
-                const fileHandle = await state.saveDirHandle.getFileHandle(fileName, { create: true });
-                const writable = await fileHandle.createWritable();
+                const writable = await state.saveDirHandle.createWritable();
                 await writable.write(state.compressedBlob);
                 await writable.close();
                 completeSubtitle.textContent = t('compressSavedAuto');
