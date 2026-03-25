@@ -15,7 +15,6 @@ const state = {
     saveDirHandle: null,     // 압축 저장 핸들
     extractZipFile: null,    // 해제할 ZIP 파일
     extractZipObj: null,     // JSZip 객체
-    extractDirHandle: null,  // 해제 저장 폴더 핸들
 };
 
 // === DOM 요소 ===
@@ -41,9 +40,6 @@ const extractFileInput = $('#extractFileInput');
 const extractPreview = $('#extractPreview');
 const extractZipName = $('#extractZipName');
 const extractFileListEl = $('#extractFileList');
-const chooseExtractLocationBtn = $('#chooseExtractLocation');
-const extractLocationText = $('#extractLocationText');
-const extractLocationHint = $('#extractLocationHint');
 const startExtractBtn = $('#startExtract');
 const extractClearBtn = $('#extractClear');
 
@@ -527,41 +523,13 @@ async function previewZipFile(file) {
     }
 }
 
-// === 압축 해제 저장 폴더 선택 (ZIP 이름으로 하위 폴더 자동 생성) ===
-async function chooseExtractLocation() {
-    if (!window.showDirectoryPicker) {
-        alert(t('folderNotSupported'));
-        return;
-    }
-    try {
-        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-
-        // ZIP 파일명에서 .zip 제거하여 폴더명 생성
-        const zipName = state.extractZipFile.name.replace(/\.zip$/i, '');
-        const subFolder = await dirHandle.getDirectoryHandle(zipName, { create: true });
-
-        state.extractDirHandle = subFolder;
-        extractLocationText.textContent = dirHandle.name + ' / ' + zipName;
-        extractLocationHint.textContent = t('saveLocationSelected');
-        extractLocationHint.style.color = 'var(--accent)';
-    } catch (err) {
-        if (err.name !== 'AbortError') {
-            console.error('폴더 선택 오류:', err);
-        }
-    }
-}
-
 // === 압축 해제 초기화 ===
 function clearExtractPreview() {
     state.extractZipFile = null;
     state.extractZipObj = null;
-    state.extractDirHandle = null;
     extractDropZone.style.display = '';
     extractPreview.style.display = 'none';
     extractFileListEl.innerHTML = '';
-    extractLocationText.textContent = t('saveLocationBtn');
-    extractLocationHint.textContent = t('saveLocationDefault');
-    extractLocationHint.style.color = '';
 }
 
 // === 압축 해제 실행 ===
@@ -615,14 +583,7 @@ async function startExtraction() {
         }
 
         updateOverallProgress(100, t('done'));
-
-        // 폴더를 미리 선택했으면 바로 저장
-        if (state.extractDirHandle) {
-            await saveExtractedToFolder(state.extractDirHandle);
-            showExtractComplete(file.name, true);
-        } else {
-            showExtractComplete(file.name, false);
-        }
+        showExtractComplete(file.name);
     } catch (err) {
         console.error('압축 해제 오류:', err);
         alert(t('extractError'));
@@ -646,20 +607,20 @@ async function saveExtractedToFolder(dirHandle) {
 }
 
 // === 압축 해제 완료 화면 ===
-function showExtractComplete(originalName, alreadySaved) {
+function showExtractComplete(originalName) {
     showScreen('screenComplete');
 
     completeTitle.textContent = t('extractComplete');
-    completeSubtitle.textContent = alreadySaved ? t('extractSaved') : t('extractSelectFolder');
+    completeSubtitle.textContent = t('extractSelectFolder');
 
     statsRow.style.display = 'none';
 
     outputFileName.textContent = originalName;
     outputFileCount.textContent = state.extractedData.length + t('extractedCount');
 
+    // 추출된 파일 목록 표시
     extractedFiles.style.display = 'block';
     extractedList.innerHTML = '';
-
     state.extractedData.forEach((file) => {
         const item = document.createElement('div');
         item.className = 'extracted-item';
@@ -673,24 +634,30 @@ function showExtractComplete(originalName, alreadySaved) {
         extractedList.appendChild(item);
     });
 
-    if (alreadySaved) {
+    const zipName = originalName.replace(/\.zip$/i, '');
+
+    // 기본 버튼: 다운로드 폴더에 저장
+    downloadBtn.style.display = '';
+    downloadBtn.textContent = '📥 ' + t('saveToDownloads');
+    downloadBtn.onclick = () => {
+        state.extractedData.forEach(f => saveAs(f.blob, f.name));
+        completeSubtitle.textContent = t('savedToDownloads');
         downloadBtn.style.display = 'none';
-    } else {
-        downloadBtn.style.display = '';
-        downloadBtn.textContent = '📁 ' + t('selectFolder');
-        downloadBtn.onclick = async () => {
-            if (!window.showDirectoryPicker) {
-                state.extractedData.forEach(f => saveAs(f.blob, f.name));
-                completeSubtitle.textContent = t('extractSaved');
-                downloadBtn.style.display = 'none';
-                return;
-            }
+        newTaskBtn.previousElementSibling?.remove(); // 다른 위치 버튼 제거
+    };
+
+    // 추가 버튼: 폴더 선택하여 저장 (다운로드 버튼 앞에 삽입)
+    if (window.showDirectoryPicker) {
+        const folderBtn = document.createElement('button');
+        folderBtn.className = 'btn-primary btn-large';
+        folderBtn.textContent = '📁 ' + t('saveToFolder');
+        folderBtn.onclick = async () => {
             try {
                 const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-                const zipName = originalName.replace(/\.zip$/i, '');
                 const subFolder = await dirHandle.getDirectoryHandle(zipName, { create: true });
                 await saveExtractedToFolder(subFolder);
-                completeSubtitle.textContent = t('extractSaved');
+                completeSubtitle.textContent = t('savedToFolder').replace('{folder}', dirHandle.name + ' / ' + zipName);
+                folderBtn.style.display = 'none';
                 downloadBtn.style.display = 'none';
             } catch (err) {
                 if (err.name !== 'AbortError') {
@@ -698,6 +665,7 @@ function showExtractComplete(originalName, alreadySaved) {
                 }
             }
         };
+        downloadBtn.parentNode.insertBefore(folderBtn, downloadBtn);
     }
 }
 
@@ -744,9 +712,6 @@ function init() {
             }
         }
     });
-
-    // 해제 저장 폴더 선택
-    chooseExtractLocationBtn.addEventListener('click', chooseExtractLocation);
 
     // 해제 시작 버튼
     startExtractBtn.addEventListener('click', startExtraction);

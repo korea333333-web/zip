@@ -65,6 +65,10 @@ const translations = {
         startExtract: '압축 해제 시작',
         previewFiles: '포함된 파일',
         sizeLimitError: '총 파일 크기가 {size}로 4GB를 초과합니다.\n\n웹 브라우저 환경에서는 4GB 이상의 파일을 처리할 수 없습니다.\n파일을 나누어서 여러 번 압축해주세요.\n\n※ 분할 압축은 지원되지 않습니다.',
+        saveToDownloads: '다운로드 폴더에 저장',
+        saveToFolder: '폴더 선택하여 저장',
+        savedToDownloads: '다운로드 폴더에 저장되었습니다',
+        savedToFolder: '{folder} 에 저장되었습니다',
     },
     en: {
         heroTitle: 'File compression, <span class="text-gradient">made easy.</span>',
@@ -128,6 +132,10 @@ const translations = {
         startExtract: 'Start extraction',
         previewFiles: 'Files included',
         sizeLimitError: 'Total file size is {size}, exceeding the 4GB limit.\n\nWeb browsers cannot process files larger than 4GB.\nPlease split your files into smaller groups and compress separately.\n\n※ Split compression is not supported.',
+        saveToDownloads: 'Save to Downloads folder',
+        saveToFolder: 'Choose folder to save',
+        savedToDownloads: 'Saved to Downloads folder',
+        savedToFolder: 'Saved to {folder}',
     },
     ja: {
         heroTitle: 'ファイル圧縮を<span class="text-gradient">もっと簡単に。</span>',
@@ -191,6 +199,10 @@ const translations = {
         startExtract: '解凍開始',
         previewFiles: '含まれるファイル',
         sizeLimitError: '合計ファイルサイズが{size}で、4GBの制限を超えています。\n\nウェブブラウザ環境では4GB以上のファイルを処理できません。\nファイルを分けて複数回圧縮してください。\n\n※ 分割圧縮には対応していません。',
+        saveToDownloads: 'ダウンロードフォルダに保存',
+        saveToFolder: 'フォルダを選択して保存',
+        savedToDownloads: 'ダウンロードフォルダに保存されました',
+        savedToFolder: '{folder} に保存されました',
     },
     zh: {
         heroTitle: '文件压缩，<span class="text-gradient">更简单。</span>',
@@ -254,6 +266,10 @@ const translations = {
         startExtract: '开始解压',
         previewFiles: '包含的文件',
         sizeLimitError: '文件总大小为{size}，超过4GB限制。\n\n网页浏览器环境无法处理超过4GB的文件。\n请将文件分组后分别压缩。\n\n※ 不支持分卷压缩。',
+        saveToDownloads: '保存到下载文件夹',
+        saveToFolder: '选择文件夹保存',
+        savedToDownloads: '已保存到下载文件夹',
+        savedToFolder: '已保存到 {folder}',
     }
 };
 
