@@ -675,6 +675,15 @@ body {
     color: var(--text-tertiary);
 }
 
+.pf-percent {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 2rem;
+    text-align: right;
+}
+
 .pf-bar {
     height: 3px;
     background: var(--border);
