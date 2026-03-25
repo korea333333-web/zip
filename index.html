@@ -66,6 +66,18 @@
                         <label class="option-label">파일 이름</label>
                         <input type="text" class="option-input" id="zipFileName" value="my_files" placeholder="파일 이름">
                     </div>
+                    <div class="option-row">
+                        <label class="option-label">저장 위치</label>
+                        <div class="save-location-row">
+                            <button class="btn-location" id="chooseSaveLocation">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                                </svg>
+                                <span id="saveLocationText">위치 선택하기</span>
+                            </button>
+                            <span class="save-location-hint" id="saveLocationHint">기본: 다운로드 폴더</span>
+                        </div>
+                    </div>
                     <button class="btn-primary" id="startCompress">
                         <span>⚡</span> 압축 시작
                     </button>

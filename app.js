@@ -12,6 +12,7 @@ const state = {
     compressedSize: 0,
     mode: 'compress',        // 'compress' | 'extract'
     cancelled: false,
+    saveFileHandle: null,    // File System Access API 핸들 (저장 위치)
 };
 
 // === DOM 요소 ===
@@ -57,6 +58,11 @@ const extractedList = $('#extractedList');
 const statsRow = $('#statsRow');
 const downloadBtn = $('#downloadBtn');
 const newTaskBtn = $('#newTaskBtn');
+
+// Save Location
+const chooseSaveLocationBtn = $('#chooseSaveLocation');
+const saveLocationText = $('#saveLocationText');
+const saveLocationHint = $('#saveLocationHint');
 
 // Logo
 const logo = $('.logo');
@@ -216,6 +222,49 @@ function updateProgress(percent, currentFile, fileStatuses) {
     }
 }
 
+// === 저장 위치 선택 (File System Access API) ===
+async function chooseSaveLocation() {
+    const fileName = (zipFileNameInput.value || 'my_files') + '.zip';
+
+    if (!window.showSaveFilePicker) {
+        alert('이 브라우저는 저장 위치 선택을 지원하지 않습니다.\nChrome 또는 Edge 브라우저를 사용해주세요.\n기본 다운로드 폴더에 저장됩니다.');
+        return;
+    }
+
+    try {
+        const handle = await window.showSaveFilePicker({
+            suggestedName: fileName,
+            types: [{
+                description: 'ZIP 파일',
+                accept: { 'application/zip': ['.zip'] }
+            }]
+        });
+        state.saveFileHandle = handle;
+        saveLocationText.textContent = handle.name;
+        saveLocationHint.textContent = '저장 위치가 선택되었습니다';
+        saveLocationHint.style.color = 'var(--primary)';
+    } catch (err) {
+        if (err.name !== 'AbortError') {
+            console.error('저장 위치 선택 오류:', err);
+        }
+    }
+}
+
+// === 파일 저장 (File System Access API 또는 FileSaver 폴백) ===
+async function saveFile(blob, fileName) {
+    if (state.saveFileHandle) {
+        try {
+            const writable = await state.saveFileHandle.createWritable();
+            await writable.write(blob);
+            await writable.close();
+            return;
+        } catch (err) {
+            console.error('파일 저장 오류, 기본 다운로드로 전환:', err);
+        }
+    }
+    saveAs(blob, fileName);
+}
+
 // === 압축 실행 ===
 async function compressFiles() {
     if (state.compressFiles.length === 0) return;
@@ -237,35 +286,41 @@ async function compressFiles() {
 
     updateProgress(0, null, fileStatuses);
 
-    // 각 파일을 ZIP에 추가
-    for (let i = 0; i < totalFiles; i++) {
+    try {
+        // 각 파일을 ZIP에 추가
+        for (let i = 0; i < totalFiles; i++) {
+            if (state.cancelled) return goHome();
+
+            const file = state.compressFiles[i];
+            fileStatuses[i].status = 'in-progress';
+            updateProgress((i / totalFiles) * 80, file.name, fileStatuses);
+            await yieldToUI();
+
+            try {
+                const data = await readFileAsync(file);
+                zip.file(file.name, data);
+            } catch (readErr) {
+                console.error(`파일 읽기 오류 (${file.name}):`, readErr);
+                fileStatuses[i].status = 'completed';
+                updateProgress(((i + 1) / totalFiles) * 80, file.name, fileStatuses);
+                continue;
+            }
+
+            fileStatuses[i].status = 'completed';
+            updateProgress(((i + 1) / totalFiles) * 80, file.name, fileStatuses);
+            await yieldToUI();
+        }
+
         if (state.cancelled) return goHome();
 
-        const file = state.compressFiles[i];
-        fileStatuses[i].status = 'in-progress';
-        updateProgress((i / totalFiles) * 80, file.name, fileStatuses);
-        await yieldToUI(); // UI 업데이트 허용
+        // ZIP 생성
+        progressInfo.innerHTML = '<span>ZIP 파일 생성 중...</span>';
+        updateProgress(85, null, fileStatuses);
 
-        // 파일 읽기
-        const data = await readFileAsync(file);
-        zip.file(file.name, data);
-
-        fileStatuses[i].status = 'completed';
-        updateProgress(((i + 1) / totalFiles) * 80, file.name, fileStatuses);
-        await yieldToUI(); // UI 업데이트 허용
-    }
-
-    if (state.cancelled) return goHome();
-
-    // ZIP 생성
-    progressInfo.innerHTML = '<span>ZIP 파일 생성 중...</span>';
-    updateProgress(85, null, fileStatuses);
-
-    try {
         const blob = await zip.generateAsync({
             type: 'blob',
             compression: 'DEFLATE',
-            compressionOptions: { level: 3 } // 속도 우선 (level 3 = 빠르면서도 적당한 압축)
+            compressionOptions: { level: 6 }
         }, (metadata) => {
             const p = 85 + (metadata.percent / 100) * 15;
             updateProgress(p, `ZIP 생성 중... ${Math.round(metadata.percent)}%`, fileStatuses);
@@ -276,7 +331,6 @@ async function compressFiles() {
         state.compressedBlob = blob;
         state.compressedSize = blob.size;
 
-        // 완료 화면 표시
         showCompressComplete();
     } catch (err) {
         console.error('압축 오류:', err);
@@ -317,7 +371,7 @@ function showCompressComplete() {
 
     downloadBtn.textContent = '📥 다운로드';
     downloadBtn.onclick = () => {
-        saveAs(state.compressedBlob, fileName);
+        saveFile(state.compressedBlob, fileName);
     };
 }
 
@@ -437,9 +491,13 @@ function goHome() {
     state.originalSize = 0;
     state.compressedSize = 0;
     state.cancelled = false;
+    state.saveFileHandle = null;
 
     compressFileList.innerHTML = '';
     compressOptions.style.display = 'none';
+    saveLocationText.textContent = '위치 선택하기';
+    saveLocationHint.textContent = '기본: 다운로드 폴더';
+    saveLocationHint.style.color = '';
     progressFileList.innerHTML = '';
     progressBarFill.style.width = '0%';
     progressRing.style.strokeDashoffset = 502.4;
@@ -467,6 +525,9 @@ function init() {
             }
         }
     });
+
+    // 저장 위치 선택 버튼
+    chooseSaveLocationBtn.addEventListener('click', chooseSaveLocation);
 
     // 압축 시작 버튼
     startCompressBtn.addEventListener('click', compressFiles);

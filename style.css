@@ -416,6 +416,41 @@ body {
     box-shadow: 0 0 0 3px rgba(73, 244, 200, 0.05);
 }
 
+/* === Save Location === */
+.save-location-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.btn-location {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+    background: var(--surface-highest);
+    border: 1px solid var(--outline-variant);
+    border-radius: var(--radius);
+    color: var(--on-surface);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: var(--font);
+    white-space: nowrap;
+}
+
+.btn-location:hover {
+    border-color: var(--primary);
+    background: rgba(73, 244, 200, 0.05);
+}
+
+.save-location-hint {
+    font-size: 0.75rem;
+    color: var(--outline);
+    white-space: nowrap;
+}
+
 /* === Buttons === */
 .btn-primary {
     width: 100%;
