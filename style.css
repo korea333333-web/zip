@@ -516,6 +516,16 @@ body {
     margin-bottom: 0.75rem;
 }
 
+.extract-save-info {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    text-align: center;
+    margin: 0.75rem 0;
+    padding: 0.5rem;
+    background: var(--bg);
+    border-radius: var(--radius);
+}
+
 /* === Features Section === */
 .features-section {
     display: flex;
