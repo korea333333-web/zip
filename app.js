@@ -271,9 +271,22 @@ async function chooseSaveLocation() {
     }
 }
 
+// === 용량 제한 체크 (4GB) ===
+const MAX_SIZE = 4 * 1024 * 1024 * 1024; // 4GB
+
+function checkSizeLimit() {
+    const totalSize = state.compressFiles.reduce((sum, f) => sum + f.size, 0);
+    if (totalSize > MAX_SIZE) {
+        alert(t('sizeLimitError').replace('{size}', formatSize(totalSize)));
+        return false;
+    }
+    return true;
+}
+
 // === 압축 실행 ===
 async function compressFiles() {
     if (state.compressFiles.length === 0) return;
+    if (!checkSizeLimit()) return;
 
     state.mode = 'compress';
     state.cancelled = false;
