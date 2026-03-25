@@ -62,6 +62,8 @@ const translations = {
         browserNotSupported: '이 브라우저는 저장 위치 선택을 지원하지 않습니다.\nChrome 또는 Edge 브라우저를 사용해주세요.\n기본 다운로드 폴더에 저장됩니다.',
         folderNotSupported: '이 브라우저는 폴더 선택을 지원하지 않습니다.\nChrome 또는 Edge 브라우저를 사용해주세요.',
         done: '완료!',
+        startExtract: '압축 해제 시작',
+        previewFiles: '포함된 파일',
     },
     en: {
         heroTitle: 'File compression, <span class="text-gradient">made easy.</span>',
@@ -122,6 +124,8 @@ const translations = {
         browserNotSupported: 'This browser does not support save location selection.\nPlease use Chrome or Edge.\nFiles will be saved to the default download folder.',
         folderNotSupported: 'This browser does not support folder selection.\nPlease use Chrome or Edge.',
         done: 'Done!',
+        startExtract: 'Start extraction',
+        previewFiles: 'Files included',
     },
     ja: {
         heroTitle: 'ファイル圧縮を<span class="text-gradient">もっと簡単に。</span>',
@@ -182,6 +186,8 @@ const translations = {
         browserNotSupported: 'このブラウザは保存先の選択に対応していません。\nChromeまたはEdgeをご利用ください。\nデフォルトのダウンロードフォルダに保存されます。',
         folderNotSupported: 'このブラウザはフォルダ選択に対応していません。\nChromeまたはEdgeをご利用ください。',
         done: '完了！',
+        startExtract: '解凍開始',
+        previewFiles: '含まれるファイル',
     },
     zh: {
         heroTitle: '文件压缩，<span class="text-gradient">更简单。</span>',
@@ -242,6 +248,8 @@ const translations = {
         browserNotSupported: '此浏览器不支持选择保存位置。\n请使用Chrome或Edge浏览器。\n文件将保存到默认下载文件夹。',
         folderNotSupported: '此浏览器不支持选择文件夹。\n请使用Chrome或Edge浏览器。',
         done: '完成！',
+        startExtract: '开始解压',
+        previewFiles: '包含的文件',
     }
 };
 

@@ -481,6 +481,34 @@ body {
     border-color: var(--border-hover);
 }
 
+/* === Extract Preview === */
+.extract-preview {
+    margin-top: 0.75rem;
+}
+
+.extract-preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0.75rem;
+    background: var(--accent-light);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    margin-bottom: 0.5rem;
+}
+
+.extract-preview-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.extract-file-list {
+    max-height: 180px;
+    overflow-y: auto;
+    margin-bottom: 0.75rem;
+}
+
 /* === Features Section === */
 .features-section {
     display: flex;
