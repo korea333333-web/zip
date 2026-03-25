@@ -591,21 +591,6 @@ async function startExtraction() {
     }
 }
 
-// === 해제된 파일들을 폴더에 저장 ===
-async function saveExtractedToFolder(dirHandle) {
-    for (const file of state.extractedData) {
-        const parts = file.name.split('/');
-        let currentDir = dirHandle;
-        for (let i = 0; i < parts.length - 1; i++) {
-            currentDir = await currentDir.getDirectoryHandle(parts[i], { create: true });
-        }
-        const fileHandle = await currentDir.getFileHandle(parts[parts.length - 1], { create: true });
-        const writable = await fileHandle.createWritable();
-        await writable.write(file.blob);
-        await writable.close();
-    }
-}
-
 // === 압축 해제 완료 화면 ===
 function showExtractComplete(originalName) {
     showScreen('screenComplete');
@@ -637,47 +622,14 @@ function showExtractComplete(originalName) {
     const actions = document.querySelector('.complete-actions');
     actions.querySelectorAll('.extra-save-btn').forEach(b => b.remove());
 
-    const zipName = originalName.replace(/\.zip$/i, '');
-
-    // 메인 버튼: 폴더 선택하여 저장
+    // 메인 버튼: 다운로드 폴더에 저장 (항상 작동, 에러 없음)
     downloadBtn.style.display = '';
-    downloadBtn.textContent = '📁 ' + t('saveToFolder');
-    downloadBtn.onclick = async () => {
-        if (window.showDirectoryPicker) {
-            try {
-                const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite', startIn: 'downloads' });
-                const subFolder = await dirHandle.getDirectoryHandle(zipName, { create: true });
-                await saveExtractedToFolder(subFolder);
-                completeSubtitle.textContent = t('savedToFolder').replace('{folder}', dirHandle.name + ' / ' + zipName);
-                downloadBtn.style.display = 'none';
-                const dlBtn = actions.querySelector('.extra-save-btn');
-                if (dlBtn) dlBtn.style.display = 'none';
-                return;
-            } catch (err) {
-                if (err.name === 'AbortError') return;
-                // 시스템 폴더 에러 → 다운로드 폴더로 자동 전환
-                console.error('폴더 접근 제한:', err);
-            }
-        }
-        // 폴백: 다운로드 폴더에 저장
+    downloadBtn.textContent = '📥 ' + t('saveToDownloads');
+    downloadBtn.onclick = () => {
         state.extractedData.forEach(f => saveAs(f.blob, f.name));
         completeSubtitle.textContent = t('savedToDownloads');
         downloadBtn.style.display = 'none';
-        const dlBtn = actions.querySelector('.extra-save-btn');
-        if (dlBtn) dlBtn.style.display = 'none';
     };
-
-    // 서브 버튼: 다운로드 폴더에 바로 저장
-    const dlBtn = document.createElement('button');
-    dlBtn.className = 'btn-ghost extra-save-btn';
-    dlBtn.textContent = '📥 ' + t('saveToDownloads');
-    dlBtn.onclick = () => {
-        state.extractedData.forEach(f => saveAs(f.blob, f.name));
-        completeSubtitle.textContent = t('savedToDownloads');
-        downloadBtn.style.display = 'none';
-        dlBtn.style.display = 'none';
-    };
-    actions.insertBefore(dlBtn, newTaskBtn);
 }
 
 // === 홈으로 돌아가기 ===
