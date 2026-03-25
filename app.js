@@ -534,7 +534,7 @@ async function chooseExtractLocation() {
         return;
     }
     try {
-        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite', startIn: 'documents' });
+        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite', startIn: 'desktop' });
         state.extractDirHandle = dirHandle;
         const zipName = state.extractZipFile.name.replace(/\.zip$/i, '');
         extractLocationText.textContent = dirHandle.name + ' / ' + zipName;
