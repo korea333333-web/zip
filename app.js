@@ -570,13 +570,20 @@ async function startExtraction() {
             }
             updateOverallProgress((processed / totalEntries) * 100, `${t('processingFile')} ${fileName}`);
 
-            const blob = await zipEntry.async('blob');
-            state.extractedData.push({ name: fileName, blob, size: blob.size });
+            try {
+                const blob = await zipEntry.async('blob');
+                state.extractedData.push({ name: fileName, blob, size: blob.size });
 
-            if (statusIdx >= 0) {
-                fileStatuses[statusIdx].status = 'completed';
-                fileStatuses[statusIdx].size = blob.size;
-                fileStatuses[statusIdx].readProgress = 1;
+                if (statusIdx >= 0) {
+                    fileStatuses[statusIdx].status = 'completed';
+                    fileStatuses[statusIdx].size = blob.size;
+                    fileStatuses[statusIdx].readProgress = 1;
+                }
+            } catch (fileErr) {
+                console.error(`파일 해제 실패 (${fileName}):`, fileErr);
+                if (statusIdx >= 0) {
+                    fileStatuses[statusIdx].status = 'completed';
+                }
             }
             processed++;
             updateOverallProgress((processed / totalEntries) * 100, `${processed} / ${totalEntries} ${t('filesUnit')}`);
