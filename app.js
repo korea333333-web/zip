@@ -245,23 +245,17 @@ function updateZipGenProgress(percent) {
     zipGenPercent.textContent = p + '%';
 }
 
-// === 저장 위치 선택 (경로만 기억, 파일은 압축 완료 후 생성) ===
+// === 저장 위치 선택 (폴더만 기억, 파일은 압축 완료 후 생성) ===
 async function chooseSaveLocation() {
-    if (!window.showSaveFilePicker) {
+    if (!window.showDirectoryPicker) {
         alert(t('browserNotSupported'));
         return;
     }
 
-    const fileName = (zipFileNameInput.value || 'my_files') + '.zip';
-
     try {
-        const handle = await window.showSaveFilePicker({
-            suggestedName: fileName,
-            types: [{ description: 'ZIP', accept: { 'application/zip': ['.zip'] } }]
-        });
-        // 핸들만 저장, 파일에 쓰지 않음 (압축 완료 후에 씀)
-        state.saveDirHandle = handle;
-        saveLocationText.textContent = handle.name;
+        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        state.saveDirHandle = dirHandle;
+        saveLocationText.textContent = dirHandle.name;
         saveLocationHint.textContent = t('saveLocationSelected');
         saveLocationHint.style.color = 'var(--accent)';
     } catch (err) {
@@ -446,10 +440,11 @@ function readFileAsync(file, onProgress) {
 async function showCompressComplete() {
     const fileName = (zipFileNameInput.value || 'my_files') + '.zip';
 
-    // 미리 저장 위치를 선택했으면 바로 저장
+    // 미리 저장 위치(폴더)를 선택했으면 해당 폴더에 파일 생성
     if (state.saveDirHandle) {
         try {
-            const writable = await state.saveDirHandle.createWritable();
+            const fileHandle = await state.saveDirHandle.getFileHandle(fileName, { create: true });
+            const writable = await fileHandle.createWritable();
             await writable.write(state.compressedBlob);
             await writable.close();
         } catch (err) {
