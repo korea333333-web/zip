@@ -556,6 +556,7 @@ async function startExtraction() {
     renderProgressFileList(fileStatuses);
 
     state.extractedData = [];
+    state.extractFailedFiles = [];
     let processed = 0;
 
     try {
@@ -581,6 +582,7 @@ async function startExtraction() {
                 }
             } catch (fileErr) {
                 console.error(`파일 해제 실패 (${fileName}):`, fileErr);
+                state.extractFailedFiles.push(fileName);
                 if (statusIdx >= 0) {
                     fileStatuses[statusIdx].status = 'completed';
                 }
@@ -593,7 +595,11 @@ async function startExtraction() {
 
         updateOverallProgress(100, t('done'));
 
-        // 완료 화면에서 다운로드 버튼 제공 (자동 다운로드 시 브라우저 차단 방지)
+        // 실패한 파일이 있으면 경고
+        if (state.extractFailedFiles.length > 0) {
+            alert(`⚠️ ${state.extractFailedFiles.length}개 파일을 해제하지 못했습니다:\n\n${state.extractFailedFiles.join('\n')}\n\nZIP 파일이 손상되었을 수 있습니다.`);
+        }
+
         showExtractComplete(file.name);
     } catch (err) {
         console.error('압축 해제 오류:', err);
@@ -608,11 +614,14 @@ function showExtractComplete(originalName) {
     const zipName = originalName.replace(/\.zip$/i, '');
 
     completeTitle.textContent = t('extractComplete');
-    completeSubtitle.textContent = '저장할 폴더를 선택하세요';
+    const failCount = state.extractFailedFiles ? state.extractFailedFiles.length : 0;
+    completeSubtitle.textContent = failCount > 0
+        ? `⚠️ ${failCount}개 파일 해제 실패 — 나머지 ${state.extractedData.length}개 파일을 저장하세요`
+        : '저장할 폴더를 선택하세요';
 
     statsRow.style.display = 'none';
     outputFileName.textContent = originalName;
-    outputFileCount.textContent = state.extractedData.length + t('extractedCount');
+    outputFileCount.textContent = `${state.extractedData.length}개 성공` + (failCount > 0 ? ` / ${failCount}개 실패` : '');
 
     // 추출된 파일 목록
     extractedFiles.style.display = 'block';
@@ -643,20 +652,33 @@ function showExtractComplete(originalName) {
         try {
             const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
             const subFolder = await dirHandle.getDirectoryHandle(zipName, { create: true });
+            let savedCount = 0;
+            const saveFailed = [];
             for (const f of state.extractedData) {
-                const parts = f.name.split('/');
-                let dir = subFolder;
-                for (let j = 0; j < parts.length - 1; j++) {
-                    dir = await dir.getDirectoryHandle(parts[j], { create: true });
+                try {
+                    const parts = f.name.split('/');
+                    let dir = subFolder;
+                    for (let j = 0; j < parts.length - 1; j++) {
+                        dir = await dir.getDirectoryHandle(parts[j], { create: true });
+                    }
+                    const fh = await dir.getFileHandle(parts[parts.length - 1], { create: true });
+                    const w = await fh.createWritable();
+                    await w.write(f.blob);
+                    await w.close();
+                    savedCount++;
+                } catch (saveErr) {
+                    console.error(`파일 저장 실패 (${f.name}):`, saveErr);
+                    saveFailed.push(f.name);
                 }
-                const fh = await dir.getFileHandle(parts[parts.length - 1], { create: true });
-                const w = await fh.createWritable();
-                await w.write(f.blob);
-                await w.close();
             }
-            completeSubtitle.textContent = `${dirHandle.name} / ${zipName} 에 저장 완료!`;
-            notice.style.display = 'none';
-            downloadBtn.style.display = 'none';
+            if (saveFailed.length > 0) {
+                alert(`⚠️ ${saveFailed.length}개 파일 저장 실패:\n\n${saveFailed.join('\n')}`);
+                completeSubtitle.textContent = `${dirHandle.name} / ${zipName} 에 ${savedCount}개 저장 (${saveFailed.length}개 실패)`;
+            } else {
+                completeSubtitle.textContent = `${dirHandle.name} / ${zipName} 에 ${savedCount}개 모두 저장 완료!`;
+                notice.style.display = 'none';
+                downloadBtn.style.display = 'none';
+            }
         } catch (err) {
             if (err.name === 'AbortError') return;
             alert('이 폴더에는 저장할 수 없습니다.\n\n바탕화면이나 다운로드 폴더에 새 폴더를 먼저 만든 후,\n그 폴더를 선택해주세요.');
