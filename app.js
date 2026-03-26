@@ -434,27 +434,12 @@ function readFileAsync(file, onProgress) {
     });
 }
 
-// === 압축 완료 → 바로 저장 후 결과 표시 ===
+// === 압축 완료 → 결과 화면 표시 후 사용자가 저장 버튼 클릭 ===
 async function showCompressComplete() {
     const fileName = (zipFileNameInput.value || 'my_files') + '.zip';
 
-    if (state.saveMode === 'pick' && window.showSaveFilePicker) {
-        // 직접 선택 모드 → 저장 대화상자 표시 (바탕화면 포함 어디든 가능)
-        try {
-            const handle = await window.showSaveFilePicker({
-                suggestedName: fileName,
-                types: [{ description: 'ZIP', accept: { 'application/zip': ['.zip'] } }]
-            });
-            const writable = await handle.createWritable();
-            await writable.write(state.compressedBlob);
-            await writable.close();
-        } catch (err) {
-            if (err.name !== 'AbortError') {
-                saveAs(state.compressedBlob, fileName);
-            }
-        }
-    } else {
-        // 기본 모드 → 다운로드 폴더에 자동 저장
+    // 기본 모드 → 다운로드 폴더에 바로 저장
+    if (state.saveMode !== 'pick') {
         saveAs(state.compressedBlob, fileName);
     }
 
@@ -464,7 +449,9 @@ async function showCompressComplete() {
     const savedPercent = ((1 - state.compressedSize / state.originalSize) * 100).toFixed(1);
 
     completeTitle.textContent = t('compressComplete');
-    completeSubtitle.textContent = t('compressSavedAuto');
+    completeSubtitle.textContent = state.saveMode === 'pick'
+        ? '아래 버튼을 눌러 저장 위치를 선택하세요'
+        : t('compressSavedAuto');
 
     statsRow.style.display = 'grid';
     statOriginal.textContent = formatSize(state.originalSize);
@@ -475,7 +462,35 @@ async function showCompressComplete() {
     outputFileCount.textContent = state.compressFiles.length + t('filesUnit');
 
     extractedFiles.style.display = 'none';
-    downloadBtn.style.display = 'none';
+
+    // 직접 선택 모드 → 저장 버튼 표시
+    if (state.saveMode === 'pick') {
+        downloadBtn.style.display = '';
+        downloadBtn.textContent = '📁 저장 위치 선택';
+        downloadBtn.onclick = async () => {
+            if (window.showSaveFilePicker) {
+                try {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: fileName,
+                        types: [{ description: 'ZIP', accept: { 'application/zip': ['.zip'] } }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(state.compressedBlob);
+                    await writable.close();
+                    completeSubtitle.textContent = '저장 완료!';
+                    downloadBtn.style.display = 'none';
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        saveAs(state.compressedBlob, fileName);
+                    }
+                }
+            } else {
+                saveAs(state.compressedBlob, fileName);
+            }
+        };
+    } else {
+        downloadBtn.style.display = 'none';
+    }
 }
 
 // === ZIP 파일 미리보기 (드롭 시 호출) ===
