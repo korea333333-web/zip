@@ -598,46 +598,62 @@ async function startExtraction() {
 // === 압축 해제 완료 화면 ===
 function showExtractComplete(originalName) {
     showScreen('screenComplete');
+    const zipName = originalName.replace(/\.zip$/i, '');
 
     completeTitle.textContent = t('extractComplete');
-    completeSubtitle.textContent = '아래 버튼을 눌러 파일을 다운로드하세요';
+    completeSubtitle.textContent = '저장할 폴더를 선택하세요';
 
     statsRow.style.display = 'none';
     outputFileName.textContent = originalName;
     outputFileCount.textContent = state.extractedData.length + t('extractedCount');
 
-    // 추출된 파일 목록 + 개별 다운로드 버튼
+    // 추출된 파일 목록
     extractedFiles.style.display = 'block';
     extractedList.innerHTML = '';
     state.extractedData.forEach((file) => {
         const item = document.createElement('div');
         item.className = 'extracted-item';
-        item.style.cursor = 'pointer';
         item.innerHTML = `
             <div class="extracted-item-name">
                 <span>${getFileIcon(file.name)}</span>
                 <span>${file.name}</span>
             </div>
             <span class="extracted-item-size">${formatSize(file.size)}</span>
-            <span style="color: var(--accent); font-size: 0.85rem;">📥 저장</span>
         `;
-        item.addEventListener('click', () => saveAs(file.blob, file.name));
         extractedList.appendChild(item);
     });
 
-    // 전체 다운로드 버튼 (하나씩 순차 다운로드)
+    // 안내 메시지
+    const notice = document.createElement('p');
+    notice.style.cssText = 'text-align:center; color:var(--text-secondary); font-size:0.85rem; margin:12px 0 4px; line-height:1.6;';
+    notice.innerHTML = '⚠️ 브라우저 보안 정책상 바탕화면·다운로드 폴더에 직접 저장이 불가합니다.<br>저장할 위치에 <b>새 폴더를 먼저 만든 후</b> 그 폴더를 선택하세요.';
+    extractedList.parentElement.insertBefore(notice, downloadBtn.parentElement);
+
+    // 폴더 선택하여 저장 버튼
     downloadBtn.style.display = '';
-    downloadBtn.textContent = '📥 전체 다운로드';
+    downloadBtn.textContent = '📁 폴더 선택하여 저장';
     downloadBtn.onclick = async () => {
-        for (let i = 0; i < state.extractedData.length; i++) {
-            const f = state.extractedData[i];
-            saveAs(f.blob, f.name);
-            // 브라우저 차단 방지: 파일 간 0.5초 간격
-            if (i < state.extractedData.length - 1) {
-                await new Promise(r => setTimeout(r, 500));
+        try {
+            const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+            const subFolder = await dirHandle.getDirectoryHandle(zipName, { create: true });
+            for (const f of state.extractedData) {
+                const parts = f.name.split('/');
+                let dir = subFolder;
+                for (let j = 0; j < parts.length - 1; j++) {
+                    dir = await dir.getDirectoryHandle(parts[j], { create: true });
+                }
+                const fh = await dir.getFileHandle(parts[parts.length - 1], { create: true });
+                const w = await fh.createWritable();
+                await w.write(f.blob);
+                await w.close();
             }
+            completeSubtitle.textContent = `${dirHandle.name} / ${zipName} 에 저장 완료!`;
+            notice.style.display = 'none';
+            downloadBtn.style.display = 'none';
+        } catch (err) {
+            if (err.name === 'AbortError') return;
+            alert('이 폴더에는 저장할 수 없습니다.\n\n바탕화면이나 다운로드 폴더에 새 폴더를 먼저 만든 후,\n그 폴더를 선택해주세요.');
         }
-        completeSubtitle.textContent = '모든 파일이 다운로드 폴더에 저장되었습니다';
     };
 }
 
