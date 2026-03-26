@@ -586,9 +586,8 @@ async function startExtraction() {
 
         updateOverallProgress(100, t('done'));
 
-        // 다운로드 폴더에 자동 저장
-        state.extractedData.forEach(f => saveAs(f.blob, f.name));
-        showExtractComplete(file.name, null);
+        // 완료 화면에서 다운로드 버튼 제공 (자동 다운로드 시 브라우저 차단 방지)
+        showExtractComplete(file.name);
     } catch (err) {
         console.error('압축 해제 오류:', err);
         alert(t('extractError'));
@@ -597,35 +596,49 @@ async function startExtraction() {
 }
 
 // === 압축 해제 완료 화면 ===
-function showExtractComplete(originalName, savedPath) {
+function showExtractComplete(originalName) {
     showScreen('screenComplete');
 
     completeTitle.textContent = t('extractComplete');
-    completeSubtitle.textContent = savedPath
-        ? t('savedToFolder').replace('{folder}', savedPath)
-        : t('savedToDownloads');
+    completeSubtitle.textContent = '아래 버튼을 눌러 파일을 다운로드하세요';
 
     statsRow.style.display = 'none';
     outputFileName.textContent = originalName;
     outputFileCount.textContent = state.extractedData.length + t('extractedCount');
 
-    // 추출된 파일 목록
+    // 추출된 파일 목록 + 개별 다운로드 버튼
     extractedFiles.style.display = 'block';
     extractedList.innerHTML = '';
     state.extractedData.forEach((file) => {
         const item = document.createElement('div');
         item.className = 'extracted-item';
+        item.style.cursor = 'pointer';
         item.innerHTML = `
             <div class="extracted-item-name">
                 <span>${getFileIcon(file.name)}</span>
                 <span>${file.name}</span>
             </div>
             <span class="extracted-item-size">${formatSize(file.size)}</span>
+            <span style="color: var(--accent); font-size: 0.85rem;">📥 저장</span>
         `;
+        item.addEventListener('click', () => saveAs(file.blob, file.name));
         extractedList.appendChild(item);
     });
 
-    downloadBtn.style.display = 'none';
+    // 전체 다운로드 버튼 (하나씩 순차 다운로드)
+    downloadBtn.style.display = '';
+    downloadBtn.textContent = '📥 전체 다운로드';
+    downloadBtn.onclick = async () => {
+        for (let i = 0; i < state.extractedData.length; i++) {
+            const f = state.extractedData[i];
+            saveAs(f.blob, f.name);
+            // 브라우저 차단 방지: 파일 간 0.5초 간격
+            if (i < state.extractedData.length - 1) {
+                await new Promise(r => setTimeout(r, 500));
+            }
+        }
+        completeSubtitle.textContent = '모든 파일이 다운로드 폴더에 저장되었습니다';
+    };
 }
 
 // === 홈으로 돌아가기 ===
