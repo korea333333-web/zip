@@ -255,8 +255,9 @@ async function chooseSaveLocation() {
     try {
         const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
         state.saveDirHandle = dirHandle;
-        saveLocationText.textContent = dirHandle.name;
-        saveLocationHint.textContent = t('saveLocationSelected');
+        const baseName = zipFileNameInput.value || 'my_files';
+        saveLocationText.textContent = dirHandle.name + ' / ' + baseName;
+        saveLocationHint.textContent = '📁 선택한 위치에 폴더가 자동 생성됩니다';
         saveLocationHint.style.color = 'var(--accent)';
     } catch (err) {
         if (err.name !== 'AbortError') {
@@ -441,9 +442,12 @@ async function showCompressComplete() {
     const fileName = (zipFileNameInput.value || 'my_files') + '.zip';
 
     // 미리 저장 위치(폴더)를 선택했으면 해당 폴더에 파일 생성
+    // 바탕화면 등 시스템 폴더는 직접 쓰기가 차단되므로, 하위 폴더를 자동 생성하여 저장
     if (state.saveDirHandle) {
         try {
-            const fileHandle = await state.saveDirHandle.getFileHandle(fileName, { create: true });
+            const baseName = zipFileNameInput.value || 'my_files';
+            const subFolder = await state.saveDirHandle.getDirectoryHandle(baseName, { create: true });
+            const fileHandle = await subFolder.getFileHandle(fileName, { create: true });
             const writable = await fileHandle.createWritable();
             await writable.write(state.compressedBlob);
             await writable.close();
