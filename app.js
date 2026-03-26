@@ -245,38 +245,21 @@ function updateZipGenProgress(percent) {
     zipGenPercent.textContent = p + '%';
 }
 
-// === 저장 위치 선택 (폴더만 기억, 파일은 압축 완료 후 생성) ===
-async function chooseSaveLocation() {
-    if (!window.showDirectoryPicker) {
-        alert(t('browserNotSupported'));
-        return;
-    }
-
-    try {
-        const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-        // 선택한 폴더에 테스트 쓰기를 시도하여 접근 가능한지 확인
-        try {
-            const testHandle = await dirHandle.getFileHandle('.zipeasy_test', { create: true });
-            await dirHandle.removeEntry('.zipeasy_test');
-            // 쓰기 가능한 폴더 → 직접 저장 모드
-            state.saveDirHandle = dirHandle;
-            state.saveFallback = false;
-            const baseName = zipFileNameInput.value || 'my_files';
-            saveLocationText.textContent = dirHandle.name + ' / ' + baseName;
-            saveLocationHint.textContent = '📁 선택한 위치에 폴더가 자동 생성됩니다';
-            saveLocationHint.style.color = 'var(--accent)';
-        } catch (writeErr) {
-            // 시스템 폴더(바탕화면 등) → 압축 완료 후 저장 대화상자 모드
-            state.saveDirHandle = null;
-            state.saveFallback = true;
-            saveLocationText.textContent = dirHandle.name;
-            saveLocationHint.textContent = '⚠️ 시스템 폴더라 압축 완료 후 저장 대화상자가 나타납니다';
-            saveLocationHint.style.color = '#e67e22';
-        }
-    } catch (err) {
-        if (err.name !== 'AbortError') {
-            console.error('저장 위치 선택 오류:', err);
-        }
+// === 저장 위치 토글 (직접 선택 ↔ 다운로드 폴더) ===
+function chooseSaveLocation() {
+    if (state.saveMode === 'pick') {
+        // 이미 직접 선택 모드 → 다운로드 폴더로 전환
+        state.saveMode = 'download';
+        state.saveDirHandle = null;
+        saveLocationText.textContent = t('saveLocationBtn');
+        saveLocationHint.textContent = t('saveLocationDefault');
+        saveLocationHint.style.color = '';
+    } else {
+        // 직접 선택 모드로 전환 → 압축 완료 후 저장 대화상자 표시
+        state.saveMode = 'pick';
+        saveLocationText.textContent = '직접 위치 선택';
+        saveLocationHint.textContent = '✅ 압축 완료 후 저장 대화상자가 나타납니다 (바탕화면 OK)';
+        saveLocationHint.style.color = 'var(--accent)';
     }
 }
 
@@ -455,22 +438,8 @@ function readFileAsync(file, onProgress) {
 async function showCompressComplete() {
     const fileName = (zipFileNameInput.value || 'my_files') + '.zip';
 
-    // 미리 저장 위치(폴더)를 선택했으면 해당 폴더에 파일 생성
-    // 바탕화면 등 시스템 폴더는 직접 쓰기가 차단되므로, 하위 폴더를 자동 생성하여 저장
-    if (state.saveDirHandle) {
-        try {
-            const baseName = zipFileNameInput.value || 'my_files';
-            const subFolder = await state.saveDirHandle.getDirectoryHandle(baseName, { create: true });
-            const fileHandle = await subFolder.getFileHandle(fileName, { create: true });
-            const writable = await fileHandle.createWritable();
-            await writable.write(state.compressedBlob);
-            await writable.close();
-        } catch (err) {
-            console.error('자동 저장 실패:', err);
-            saveAs(state.compressedBlob, fileName);
-        }
-    } else if (window.showSaveFilePicker) {
-        // 저장 위치 미선택 → 바로 저장 대화상자 표시
+    if (state.saveMode === 'pick' && window.showSaveFilePicker) {
+        // 직접 선택 모드 → 저장 대화상자 표시 (바탕화면 포함 어디든 가능)
         try {
             const handle = await window.showSaveFilePicker({
                 suggestedName: fileName,
@@ -485,6 +454,7 @@ async function showCompressComplete() {
             }
         }
     } else {
+        // 기본 모드 → 다운로드 폴더에 자동 저장
         saveAs(state.compressedBlob, fileName);
     }
 
@@ -693,7 +663,7 @@ function goHome() {
     state.compressedSize = 0;
     state.cancelled = false;
     state.saveDirHandle = null;
-    state.saveFallback = false;
+    state.saveMode = null;
 
     compressFileList.innerHTML = '';
     compressOptions.style.display = 'none';
