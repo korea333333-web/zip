@@ -254,6 +254,15 @@ async function chooseSaveLocation() {
 
     try {
         const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+        // 선택한 폴더에 테스트 쓰기를 시도하여 접근 가능한지 확인
+        try {
+            const testHandle = await dirHandle.getFileHandle('.zipeasy_test', { create: true });
+            await dirHandle.removeEntry('.zipeasy_test');
+        } catch (writeErr) {
+            // 시스템 폴더(바탕화면, 다운로드 등)는 직접 쓰기 불가
+            alert('⚠️ 바탕화면·다운로드 등 시스템 폴더는 브라우저 보안 정책으로 직접 저장할 수 없습니다.\n\n👉 해결 방법:\n1. 바탕화면에 새 폴더를 먼저 만드세요\n2. 그 폴더를 저장 위치로 선택하세요\n\n또는 저장 위치를 선택하지 않으면 압축 완료 후 저장 대화상자가 나타납니다.');
+            return;
+        }
         state.saveDirHandle = dirHandle;
         const baseName = zipFileNameInput.value || 'my_files';
         saveLocationText.textContent = dirHandle.name + ' / ' + baseName;
