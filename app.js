@@ -258,16 +258,21 @@ async function chooseSaveLocation() {
         try {
             const testHandle = await dirHandle.getFileHandle('.zipeasy_test', { create: true });
             await dirHandle.removeEntry('.zipeasy_test');
+            // 쓰기 가능한 폴더 → 직접 저장 모드
+            state.saveDirHandle = dirHandle;
+            state.saveFallback = false;
+            const baseName = zipFileNameInput.value || 'my_files';
+            saveLocationText.textContent = dirHandle.name + ' / ' + baseName;
+            saveLocationHint.textContent = '📁 선택한 위치에 폴더가 자동 생성됩니다';
+            saveLocationHint.style.color = 'var(--accent)';
         } catch (writeErr) {
-            // 시스템 폴더(바탕화면, 다운로드 등)는 직접 쓰기 불가
-            alert('⚠️ 바탕화면·다운로드 등 시스템 폴더는 브라우저 보안 정책으로 직접 저장할 수 없습니다.\n\n👉 해결 방법:\n1. 바탕화면에 새 폴더를 먼저 만드세요\n2. 그 폴더를 저장 위치로 선택하세요\n\n또는 저장 위치를 선택하지 않으면 압축 완료 후 저장 대화상자가 나타납니다.');
-            return;
+            // 시스템 폴더(바탕화면 등) → 압축 완료 후 저장 대화상자 모드
+            state.saveDirHandle = null;
+            state.saveFallback = true;
+            saveLocationText.textContent = dirHandle.name;
+            saveLocationHint.textContent = '⚠️ 시스템 폴더라 압축 완료 후 저장 대화상자가 나타납니다';
+            saveLocationHint.style.color = '#e67e22';
         }
-        state.saveDirHandle = dirHandle;
-        const baseName = zipFileNameInput.value || 'my_files';
-        saveLocationText.textContent = dirHandle.name + ' / ' + baseName;
-        saveLocationHint.textContent = '📁 선택한 위치에 폴더가 자동 생성됩니다';
-        saveLocationHint.style.color = 'var(--accent)';
     } catch (err) {
         if (err.name !== 'AbortError') {
             console.error('저장 위치 선택 오류:', err);
@@ -688,6 +693,7 @@ function goHome() {
     state.compressedSize = 0;
     state.cancelled = false;
     state.saveDirHandle = null;
+    state.saveFallback = false;
 
     compressFileList.innerHTML = '';
     compressOptions.style.display = 'none';
