@@ -603,7 +603,13 @@ async function startExtraction() {
         showExtractComplete(file.name);
     } catch (err) {
         console.error('압축 해제 오류:', err);
-        alert(t('extractError'));
+        // 에러가 발생해도 이미 해제된 파일이 있으면 완료 화면으로 이동
+        if (state.extractedData && state.extractedData.length > 0) {
+            alert(`⚠️ 일부 파일 해제 중 오류가 발생했습니다.\n\n오류: ${err.message}\n\n해제 성공한 ${state.extractedData.length}개 파일은 저장할 수 있습니다.`);
+            showExtractComplete(file.name);
+            return;
+        }
+        alert(t('extractError') + '\n\n오류: ' + err.message);
         goHome();
     }
 }
